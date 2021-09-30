@@ -90,47 +90,19 @@ int tcpc_xfer(int port,
 	uint8_t *in, int in_size,
 	int flags)
 {
-#if 0
-  if (out_size)
-  {
-    WirebeginTransmission(fusb302_I2C_SLAVE_ADDR);
-    for (; out_size>0; out_size--) {
-      Wirewrite(*out);
-      out++;
-    }
-    if (flags & I2C_XFER_STOP)
-    {
-      WireendTransmission(true);
-    }
-    else
-    {
-      WireendTransmission(false);
-    }
+  WirebeginTransmission(fusb302_I2C_SLAVE_ADDR);
+  for (; out_size>0; out_size--) {
+    Wirewrite(*out);
+    out++;
   }
-
   if (in_size) {
-    WirerequestFrom(fusb302_I2C_SLAVE_ADDR, in_size, (flags & I2C_XFER_STOP));
+    WirerequestFrom((int)fusb302_I2C_SLAVE_ADDR, (int)in_size, (flags & I2C_XFER_STOP));
     for (; in_size>0; in_size--) {
-        *in = Wireread();
-        in++;
+      *in = Wireread();
+      in++;
     }
+  } else {
+    WireendTransmission(flags & I2C_XFER_STOP);
   }
-#endif
-#if 1
-    WirebeginTransmission(fusb302_I2C_SLAVE_ADDR);
-    for (; out_size>0; out_size--) {
-        Wirewrite(*out);
-        out++;
-    }
-    if (in_size) {
-        WirerequestFrom((int)fusb302_I2C_SLAVE_ADDR, (int)in_size, (flags & I2C_XFER_STOP));
-        for (; in_size>0; in_size--) {
-            *in = Wireread();
-            in++;
-        }
-    } else {
-        WireendTransmission(flags & I2C_XFER_STOP);
-    }
-#endif
   return 0;
 }

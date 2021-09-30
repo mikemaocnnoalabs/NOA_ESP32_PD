@@ -10,6 +10,8 @@
 #include "tcpm.h"
 #include "usb_pd_driver.h"
 
+#include "NOA_public.h"
+
 #ifdef CONFIG_COMMON_RUNTIME
 #define CPRINTF(format, args...) cprintf(CC_USBPD, format, ## args)
 #define CPRINTS(format, args...) cprints(CC_USBPD, format, ## args)
@@ -41,9 +43,9 @@ static int debug_level;
  */
 static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
-#define CPRINTF(format, args...)
-#define CPRINTS(format, args...)
-static const int debug_level = 0;
+#define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
+#define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
+static const int debug_level = 1;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -127,7 +129,7 @@ static enum pd_cc_states new_cc_state;
 static timestamp_t now;
 static int caps_count = 0, hard_reset_sent = 0;
 static int snk_cap_count = 0;
-static int evt;
+static int evt = 0;
 
 enum vdm_states {
   VDM_STATE_ERR_BUSY = -3,
@@ -211,7 +213,7 @@ struct pd_protocol {
 #endif
 } pd[CONFIG_USB_PD_PORT_COUNT];
 
-#ifdef CONFIG_COMMON_RUNTIME
+// #ifdef CONFIG_COMMON_RUNTIME
 static const char * const pd_state_names[] = {
 	"DISABLED", "SUSPENDED",
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -238,6 +240,7 @@ static const char * const pd_state_names[] = {
 	"DRP_AUTO_TOGGLE",
 #endif
 };
+#ifdef CONFIG_COMMON_RUNTIME
 BUILD_ASSERT(ARRAY_SIZE(pd_state_names) == PD_STATE_COUNT);
 #endif
 
@@ -417,11 +420,11 @@ static inline void set_state(int port, enum pd_states next_state)
 		disable_sleep(SLEEP_MASK_USB_PD);
 #endif
 
-	if (debug_level >= 1)
-		CPRINTF("C%d st%d %s\n", port, next_state,
-					 pd_state_names[next_state]);
-	else
-		CPRINTF("C%d st%d\n", port, next_state);
+	if (debug_level >= 1) {
+		CPRINTF("C%d st%d %s", port, next_state, pd_state_names[next_state]);
+	} else {
+		CPRINTF("C%d st%d", port, next_state);
+	}
 }
 
 /* increment message ID counter */
@@ -578,7 +581,7 @@ static int send_control(int port, int type)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, NULL);
 	if (debug_level >= 2)
-		CPRINTF("CTRL[%d]>%d\n", type, bit_len);
+		CPRINTF("CTRL[%d]>%d", type, bit_len);
 
 	return bit_len;
 }
@@ -608,7 +611,7 @@ static int send_source_cap(int port)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, src_pdo);
 	if (debug_level >= 2)
-		CPRINTF("srcCAP>%d\n", bit_len);
+		CPRINTF("srcCAP>%d", bit_len);
 
 	return bit_len;
 }
@@ -695,7 +698,7 @@ static int send_battery_cap(int port, uint32_t *payload)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, (uint32_t *)msg);
 	if (debug_level >= 2)
-		CPRINTF("batCap>%d\n", bit_len);
+		CPRINTF("batCap>%d", bit_len);
 	return bit_len;
 }
 
@@ -762,7 +765,7 @@ static int send_battery_status(int port,  uint32_t *payload)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, &msg);
 	if (debug_level >= 2)
-		CPRINTF("batStat>%d\n", bit_len);
+		CPRINTF("batStat>%d", bit_len);
 
 	return bit_len;
 }
@@ -778,7 +781,7 @@ static void send_sink_cap(int port)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, pd_snk_pdo);
 	if (debug_level >= 2)
-		CPRINTF("snkCAP>%d\n", bit_len);
+		CPRINTF("snkCAP>%d", bit_len);
 }
 
 static int send_request(int port, uint32_t rdo)
@@ -790,7 +793,7 @@ static int send_request(int port, uint32_t rdo)
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, &rdo);
 	if (debug_level >= 2)
-		CPRINTF("REQ%d>\n", bit_len);
+		CPRINTF("REQ%d>", bit_len);
 
 	return bit_len;
 }
@@ -827,7 +830,7 @@ static int send_bist_cmd(int port)
 			pd_get_rev(port), 0);
 
 	bit_len = pd_transmit(port, TCPC_TX_SOP, header, &bdo);
-	CPRINTF("BIST>%d\n", bit_len);
+	CPRINTF("BIST>%d", bit_len);
 
 	return bit_len;
 }
@@ -872,16 +875,17 @@ static void handle_vdm_request(int port, int cnt, uint32_t *payload)
 		return;
 	}
 	if (debug_level >= 2)
-		CPRINTF("Unhandled VDM VID %04x CMD %04x\n",
+		CPRINTF("Unhandled VDM VID %04x CMD %04x",
 			PD_VDO_VID(payload[0]), payload[0] & 0xFFFF);
 }
 
 void pd_execute_hard_reset(int port)
 {
-	if (pd[port].last_state == PD_STATE_HARD_RESET_SEND)
-		CPRINTF("C%d HARD RST TX\n", port);
-	else
-		CPRINTF("C%d HARD RST RX\n", port);
+	if (pd[port].last_state == PD_STATE_HARD_RESET_SEND) {
+		CPRINTF("C%d HARD RST TX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
+	} else {
+//		CPRINTF("C%d HARD RST RX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
+	}
 
 	pd[port].msg_id = 0;
 #ifdef CONFIG_USB_PD_ALT_MODE_DFP
@@ -934,7 +938,7 @@ static void execute_soft_reset(int port)
 	pd[port].msg_id = 0;
 	set_state(port, DUAL_ROLE_IF_ELSE(port, PD_STATE_SNK_DISCOVERY,
 						PD_STATE_SRC_DISCOVERY));
-	CPRINTF("C%d Soft Rst\n", port);
+	CPRINTF("C%d Soft Rst", port);
 }
 
 void pd_soft_reset(void)
@@ -1081,7 +1085,7 @@ static void handle_data_request(int port, uint16_t head,
 {
 	int type = PD_HEADER_TYPE(head);
 	int cnt = PD_HEADER_CNT(head);
-
+  DBGLOG(Info, "PD head type %d cnt %d task_state %d.", type, cnt, pd[port].task_state);
 	switch (type) {
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 	case PD_DATA_SOURCE_CAP:
@@ -1106,6 +1110,12 @@ static void handle_data_request(int port, uint16_t head,
 			pd_update_pdo_flags(port, payload[0]);
 
 			pd_process_source_cap(port, cnt, payload);
+
+      /* Source will resend source cap on failure */
+      // If this delay is not present, 
+      // the FUSB302B will NAK during a write
+      // This value seems to work best empirically. 
+      delayMicroseconds(1200);
 
 			/* Source will resend source cap on failure */
 			pd_send_request_msg(port, 1);
@@ -1193,7 +1203,7 @@ static void handle_data_request(int port, uint16_t head,
 		handle_vdm_request(port, cnt, payload);
 		break;
 	default:
-		CPRINTF("Unhandled data message type %d\n", type);
+		CPRINTF("Unhandled data message type %d", type);
 	}
 }
 
@@ -1511,7 +1521,7 @@ static void handle_ctrl_request(int port, uint16_t head,
 #ifdef CONFIG_USB_PD_REV30
 		send_control(port, PD_CTRL_NOT_SUPPORTED);
 #endif
-		CPRINTF("Unhandled ctrl message type %d\n", type);
+		CPRINTF("Unhandled ctrl message type %d", type);
 	}
 }
 
@@ -1574,7 +1584,7 @@ void pd_send_vdm(int port, uint32_t vid, int cmd, const uint32_t *data,
 		 int count)
 {
 	if (count > VDO_MAX_SIZE - 1) {
-		CPRINTF("VDM over max size\n");
+		CPRINTF("VDM over max size");
 		return;
 	}
 
@@ -1689,13 +1699,13 @@ static void pd_vdm_send_state_machine(int port)
 static inline void pd_dev_dump_info(uint16_t dev_id, uint8_t *hash)
 {
 	int j;
-	ccprintf("DevId:%d.%d Hash:", HW_DEV_ID_MAJ(dev_id),
+	CPRINTF("DevId:%d.%d Hash:", HW_DEV_ID_MAJ(dev_id),
 		 HW_DEV_ID_MIN(dev_id));
 	for (j = 0; j < PD_RW_HASH_SIZE; j += 4) {
-		ccprintf(" 0x%02x%02x%02x%02x", hash[j + 3], hash[j + 2],
+		CPRINTF(" 0x%02x%02x%02x%02x", hash[j + 3], hash[j + 2],
 			 hash[j + 1], hash[j]);
 	}
-	ccprintf("\n");
+	CPRINTF("\n");
 }
 #endif /* CONFIG_CMD_PD_DEV_DUMP_INFO */
 
@@ -2073,9 +2083,7 @@ void pd_init(int port)
 	if (!res) {
 		struct ec_response_pd_chip_info *info;
 		tcpm_get_chip_info(port, 0, &info);
-		CPRINTS("TCPC p%d VID:0x%x PID:0x%x DID:0x%x FWV:0x%lx",
-			port, info->vendor_id, info->product_id,
-			info->device_id, info->fw_version_number);
+//  CPRINTS("TCPC p%d VID:0x%x PID:0x%x DID:0x%x FWV:0x%lx", port, info->vendor_id, info->product_id, info->device_id, info->fw_version_number);
 	}
 #endif
 
@@ -2154,6 +2162,9 @@ void pd_run_state_machine(int port, int reset)
 	/* wait for next event/packet or timeout expiration */
 	// getting rid of task stuff
 	//evt = task_wait_event(timeout);
+  if (evt != 0) {
+    DBGLOG(Info, "event = %02X", evt);
+  }
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 	if (evt & PD_EVENT_UPDATE_DUAL_ROLE)
@@ -2530,7 +2541,7 @@ void pd_run_state_machine(int port, int reset)
 				break;
 			} else if (debug_level >= 2 &&
 					snk_cap_count == PD_SNK_CAP_RETRIES+1) {
-				CPRINTF("ERR SNK_CAP\n");
+				CPRINTF("ERR SNK_CAP");
 			}
 		}
 
@@ -4211,7 +4222,7 @@ static int hc_remote_pd_set_amode(struct host_cmd_handler_args *args)
 			pd_send_vdm(p->port, p->svid,
 				    CMD_EXIT_MODE | VDO_OPOS(p->opos), NULL, 0);
 		else {
-			CPRINTF("Failed exit mode\n");
+			CPRINTF("Failed exit mode");
 			return EC_RES_ERROR;
 		}
 		break;

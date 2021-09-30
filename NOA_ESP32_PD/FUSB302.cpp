@@ -11,6 +11,8 @@
 #include "usb_pd.h"
 #include "platform.h"
 
+#include "NOA_public.h"
+
 #define PACKET_IS_GOOD_CRC(head) (PD_HEADER_TYPE(head) == PD_CTRL_GOOD_CRC && PD_HEADER_CNT(head) == 0)
 
 static struct fusb302_chip_state {
@@ -844,9 +846,9 @@ static int fusb302_tcpm_get_vbus_level(int port)
 void fusb302_tcpc_alert(int port)
 {
 	/* interrupt has been received */
-	int interrupt;
-	int interrupta;
-	int interruptb;
+	int interrupt = -1;
+	int interrupta = -1;
+	int interruptb = -1;
 
 	/* reading interrupt registers clears them */
 
@@ -854,6 +856,9 @@ void fusb302_tcpc_alert(int port)
 	tcpc_read(port, TCPC_REG_INTERRUPTA, &interrupta);
 	tcpc_read(port, TCPC_REG_INTERRUPTB, &interruptb);
 
+  if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
+    DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
+  }
 	/*
 		* Ignore BC_LVL changes when transmitting / receiving PD,
 		* since CC level will constantly change.

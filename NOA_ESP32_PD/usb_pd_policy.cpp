@@ -3,17 +3,19 @@
  * found in the LICENSE file.
  */
 
+#include <string.h>
+
 #include "tcpm.h"
 #include "usb_pd.h"
 
-#include <string.h>
+#include "NOA_public.h"
 
 #ifdef CONFIG_COMMON_RUNTIME
 #define CPRINTS(format, args...) cprints(CC_USBPD, format, ## args)
 #define CPRINTF(format, args...) cprintf(CC_USBPD, format, ## args)
 #else
-#define CPRINTS(format, args...)
-#define CPRINTF(format, args...)
+#define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
+#define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #endif
 
 static int rw_flash_changed = 1;
@@ -46,7 +48,7 @@ int pd_check_requested_voltage(uint32_t rdo, const int port)
 	if (max_ma > pdo_ma && !(rdo & RDO_CAP_MISMATCH))
 		return EC_ERROR_INVAL; /* too much max current */
 
-	CPRINTF("Requested %d V %d mA (for %d/%d mA)\n",
+	CPRINTF("Requested %d V %d mA (for %d/%d mA)",
 		 ((pdo >> 10) & 0x3ff) * 50, (pdo & 0x3ff) * 10,
 		 op_ma * 10, max_ma * 10);
 
@@ -154,7 +156,7 @@ void pd_extract_pdo_power(uint32_t pdo, uint32_t *ma, uint32_t *mv)
 	*mv = ((pdo >> 10) & 0x3FF) * 50;
 
 	if (*mv == 0) {
-		CPRINTF("ERR:PDO mv=0\n");
+		CPRINTF("ERR:PDO mv=0");
 		*ma = 0;
 		return;
 	}
@@ -328,7 +330,7 @@ static void dfp_consume_svids(int port, uint32_t *payload)
 
 	for (i = pe[port].svid_cnt; i < pe[port].svid_cnt + 12; i += 2) {
 		if (i == SVID_DISCOVERY_MAX) {
-			CPRINTF("ERR:SVIDCNT\n");
+			CPRINTF("ERR:SVIDCNT");
 			break;
 		}
 
@@ -347,7 +349,7 @@ static void dfp_consume_svids(int port, uint32_t *payload)
 	}
 	/* TODO(tbroch) need to re-issue discover svids if > 12 */
 	if (i && ((i % 12) == 0))
-		CPRINTF("ERR:SVID+12\n");
+		CPRINTF("ERR:SVID+12");
 }
 
 static int dfp_discover_modes(int port, uint32_t *payload)
@@ -364,7 +366,7 @@ static void dfp_consume_modes(int port, int cnt, uint32_t *payload)
 	int idx = pe[port].svid_idx;
 	pe[port].svids[idx].mode_cnt = cnt - 1;
 	if (pe[port].svids[idx].mode_cnt < 0) {
-		CPRINTF("ERR:NOMODE\n");
+		CPRINTF("ERR:NOMODE");
 	} else {
 		memcpy(pe[port].svids[pe[port].svid_idx].mode_vdo, &payload[1],
 		       sizeof(uint32_t) * pe[port].svids[idx].mode_cnt);
@@ -409,7 +411,7 @@ int allocate_mode(int port, uint16_t svid)
 
 	/* There's no space to enter another mode */
 	if (pe[port].amode_idx == PD_AMODE_COUNT) {
-		CPRINTF("ERR:NO AMODE SPACE\n");
+		CPRINTF("ERR:NO AMODE SPACE");
 		return -1;
 	}
 
@@ -454,7 +456,7 @@ uint32_t pd_dfp_enter_mode(int port, uint16_t svid, int opos)
 	} else if (opos <= modep->data->mode_cnt) {
 		modep->opos = opos;
 	} else {
-		CPRINTF("opos error\n");
+		CPRINTF("opos error");
 		return 0;
 	}
 
@@ -473,13 +475,13 @@ static int validate_mode_request(struct svdm_amode_data *modep,
 		return 0;
 
 	if (svid != modep->fx->svid) {
-		CPRINTF("ERR:svid r:0x%04x != c:0x%04x\n",
+		CPRINTF("ERR:svid r:0x%04x != c:0x%04x",
 			svid, modep->fx->svid);
 		return 0;
 	}
 
 	if (opos != modep->opos) {
-		CPRINTF("ERR:opos r:%d != c:%d\n",
+		CPRINTF("ERR:opos r:%d != c:%d",
 			opos, modep->opos);
 		return 0;
 	}
@@ -710,7 +712,7 @@ int pd_svdm(int port, int cnt, uint32_t *payload, uint32_t **rpayload)
 			return 0;
 #endif
 		default:
-			CPRINTF("ERR:CMD:%d\n", cmd);
+			CPRINTF("ERR:CMD:%d", cmd);
 			rsize = 0;
 		}
 		if (func)
@@ -798,7 +800,7 @@ int pd_svdm(int port, int cnt, uint32_t *payload, uint32_t **rpayload)
 			rsize = 0;
 			break;
 		default:
-			CPRINTF("ERR:CMD:%d\n", cmd);
+			CPRINTF("ERR:CMD:%d", cmd);
 			rsize = 0;
 		}
 
@@ -815,7 +817,7 @@ int pd_svdm(int port, int cnt, uint32_t *payload, uint32_t **rpayload)
 			break;
 		case CMD_ENTER_MODE:
 			/* Error */
-			CPRINTF("ERR:ENTBUSY\n");
+			CPRINTF("ERR:ENTBUSY");
 			rsize = 0;
 			break;
 		case CMD_EXIT_MODE:
@@ -829,7 +831,7 @@ int pd_svdm(int port, int cnt, uint32_t *payload, uint32_t **rpayload)
 		rsize = 0;
 #endif /* CONFIG_USB_PD_ALT_MODE_DFP */
 	} else {
-		CPRINTF("ERR:CMDT:%d\n", cmd);
+		CPRINTF("ERR:CMDT:%d", cmd);
 		/* do not answer */
 		rsize = 0;
 	}
