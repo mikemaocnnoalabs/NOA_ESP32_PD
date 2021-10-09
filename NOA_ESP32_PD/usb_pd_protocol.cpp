@@ -45,7 +45,7 @@ static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
-static const int debug_level = 1;
+static const int debug_level = 3;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -1010,7 +1010,7 @@ static int pd_send_request_msg(int port, int always_send_request)
 		supply_voltage, curr_limit);
 	if (rdo & RDO_CAP_MISMATCH)
 		CPRINTF(" Mismatch");
-	CPRINTF("\n");
+//	CPRINTF("\n");
 
 	pd[port].curr_limit = curr_limit;
 	pd[port].supply_voltage = supply_voltage;
@@ -1085,7 +1085,7 @@ static void handle_data_request(int port, uint16_t head,
 {
 	int type = PD_HEADER_TYPE(head);
 	int cnt = PD_HEADER_CNT(head);
-  DBGLOG(Info, "PD head type %d cnt %d task_state %d.", type, cnt, pd[port].task_state);
+  CPRINTF("PD head type %d cnt %d task_state %d.", type, cnt, pd[port].task_state);
 	switch (type) {
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 	case PD_DATA_SOURCE_CAP:
@@ -1118,7 +1118,9 @@ static void handle_data_request(int port, uint16_t head,
       delayMicroseconds(1200);
 
 			/* Source will resend source cap on failure */
-			pd_send_request_msg(port, 1);
+      int rv = 0;
+			rv = pd_send_request_msg(port, 1);
+      CPRINTF("rv = %d", rv);
       
       // We call the callback after we send the request
       // because the timing on Request seems to be sensitive
@@ -1552,12 +1554,11 @@ static void handle_request(int port, uint16_t head,
 	int p;
 
 	/* dump received packet content (only dump ping at debug level 3) */
-	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) ||
-	    debug_level >= 3) {
-		CPRINTF("RECV %04x/%d ", head, cnt);
-		for (p = 0; p < cnt; p++)
-			CPRINTF("[%d]%08x ", p, payload[p]);
-		CPRINTF("\n");
+	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) || debug_level >= 3) {
+		CPRINTF("RECV head %04X / cnt %d ", head, cnt);
+//		for (p = 0; p < cnt; p++)
+//			CPRINTF("[%d]%08x ", p, payload[p]);
+//		CPRINTF("\n");
 	}
 
 	/*
@@ -2077,7 +2078,7 @@ void pd_init(int port)
 	//pd_partner_port_reset(port);
 #endif
 
-	CPRINTS("TCPC p%d init %s", port, res ? "failed" : "ready");
+	CPRINTS("TCPC p%d init %d %s", port, res, res ? "failed" : "ready");
 	this_state = res ? PD_STATE_SUSPENDED : PD_DEFAULT_STATE(port);
 #ifndef CONFIG_USB_PD_TCPC
 	if (!res) {
@@ -2163,7 +2164,7 @@ void pd_run_state_machine(int port, int reset)
 	// getting rid of task stuff
 	//evt = task_wait_event(timeout);
   if (evt != 0) {
-    DBGLOG(Info, "event = %02X", evt);
+    CPRINTF("event = %02X", evt);
   }
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -2255,7 +2256,6 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
 #endif
-
 		/* Vnc monitoring */
 		if ((cc1 == TYPEC_CC_VOLT_RD ||
 			    cc2 == TYPEC_CC_VOLT_RD) ||
@@ -2733,17 +2733,14 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
 #endif
-
 		/* Source connection monitoring */
-		if (cc1 != TYPEC_CC_VOLT_OPEN ||
-			cc2 != TYPEC_CC_VOLT_OPEN) {
+		if (cc1 != TYPEC_CC_VOLT_OPEN || cc2 != TYPEC_CC_VOLT_OPEN) {
+      CPRINTF("cc1 = %d cc2 = %d", cc1, cc2);
 			pd[port].cc_state = PD_CC_NONE;
 			hard_reset_count = 0;
 			new_cc_state = PD_CC_NONE;
-			pd[port].cc_debounce = get_time().val +
-						PD_T_CC_DEBOUNCE;
-			set_state(port,
-				PD_STATE_SNK_DISCONNECTED_DEBOUNCE);
+			pd[port].cc_debounce = get_time().val + PD_T_CC_DEBOUNCE;
+			set_state(port, PD_STATE_SNK_DISCONNECTED_DEBOUNCE);
 			timeout = 10*MSEC_US;
 			break;
 		}
@@ -2788,6 +2785,8 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
 
+//    CPRINTF("cc1 = %d cc2 = %d new cc = %d", cc1, cc2, new_cc_state);
+
 		timeout = 20*MSEC_US;
 
 		/* Debounce the cc state */
@@ -2822,14 +2821,14 @@ void pd_run_state_machine(int port, int reset)
 
 		/* We are attached */
 		pd[port].polarity = get_snk_polarity(cc1, cc2);
+    CPRINTF("pd[%d].polarity = %d", port, pd[port].polarity);
 		tcpm_set_polarity(port, pd[port].polarity);
 		/* reset message ID  on connection */
 		pd[port].msg_id = 0;
 		/* initial data role for sink is UFP */
 		pd_set_data_role(port, PD_ROLE_UFP);
 #if defined(CONFIG_CHARGE_MANAGER)
-		typec_curr = get_typec_current_limit(pd[port].polarity,
-							    cc1, cc2);
+		typec_curr = get_typec_current_limit(pd[port].polarity, cc1, cc2);
 		//typec_set_input_current_limit(
 		//	port, typec_curr, TYPE_C_VOLTAGE);
 #endif
@@ -2838,14 +2837,10 @@ void pd_run_state_machine(int port, int reset)
 			tcpm_set_rx_enable(port, 1);
 
 		/* DFP is attached */
-		if (new_cc_state == PD_CC_DFP_ATTACHED ||
-			new_cc_state == PD_CC_DEBUG_ACC) {
-			pd[port].flags |= PD_FLAGS_CHECK_PR_ROLE |
-						PD_FLAGS_CHECK_DR_ROLE |
-						PD_FLAGS_CHECK_IDENTITY;
+		if (new_cc_state == PD_CC_DFP_ATTACHED || new_cc_state == PD_CC_DEBUG_ACC) {
+			pd[port].flags |= PD_FLAGS_CHECK_PR_ROLE | PD_FLAGS_CHECK_DR_ROLE | PD_FLAGS_CHECK_IDENTITY;
 			if (new_cc_state == PD_CC_DEBUG_ACC)
-				pd[port].flags |=
-					PD_FLAGS_TS_DTS_PARTNER;
+				pd[port].flags |= PD_FLAGS_TS_DTS_PARTNER;
 			send_control(port, PD_CTRL_GET_SOURCE_CAP);
 			set_state(port, PD_STATE_SNK_DISCOVERY);
 			timeout = 10*MSEC_US;

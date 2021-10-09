@@ -700,7 +700,10 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 
 	/* If our FIFO is empty then we have no packet */
 	if (fusb302_rx_fifo_is_empty(port))
+  {
+//    DBGLOG(Debug, "Port %d fifo is empty", port);
 		return EC_ERROR_UNKNOWN;
+  }
 
 	/* Read until we have a non-GoodCRC packet or an empty FIFO */
 	do {
@@ -720,7 +723,11 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		 * TODO: Check token to ensure valid packet.
 		 */
 		// rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_START);
+    memset(buf, '\0', sizeof(buf));
 		rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_STOP);
+//    DBGLOG(Info, "Buf[0] = 0x%02X", buf[0]);
+//    DBGLOG(Info, "Buf[1] = 0x%02X", buf[1]);
+//    DBGLOG(Info, "Buf[2] = 0x%02X", buf[2]);
 
 		/* Grab the header */
 		*head = (buf[1] & 0xFF);
@@ -728,6 +735,7 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 
 		/* figure out packet length, subtract header bytes */
 		len = get_num_bytes(*head) - 2;
+//    DBGLOG(Info, "len from head = %d", len);
 
 		/*
 		 * PART 3 OF BURST READ: Read everything else.
@@ -736,9 +744,15 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		 */
 		rv |= tcpc_xfer(port, 0, 0, buf, len+4, I2C_XFER_STOP);
 
-	} while (!rv && PACKET_IS_GOOD_CRC(*head) &&
-		 !fusb302_rx_fifo_is_empty(port));
+	} while (!rv && PACKET_IS_GOOD_CRC(*head) && !fusb302_rx_fifo_is_empty(port));
 
+//  DBGLOG(Info, "Buf = ");
+//  for (int i = 0; i < len; i++) {
+//    Serial.print(buf[i], HEX);
+//    Serial.print(" ");
+//  }
+//  Serial.println(" ");
+   
 	if (!rv) {
 		/* Discard GoodCRC packets */
 		if (PACKET_IS_GOOD_CRC(*head))
@@ -857,7 +871,7 @@ void fusb302_tcpc_alert(int port)
 	tcpc_read(port, TCPC_REG_INTERRUPTB, &interruptb);
 
   if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
-    DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
+//    DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
   }
 	/*
 		* Ignore BC_LVL changes when transmitting / receiving PD,

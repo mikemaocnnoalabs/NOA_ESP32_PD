@@ -34,8 +34,8 @@ void setup() {
   pushbutton_last_time = 0;
   digitalWrite(debug_led_pin, LOW);
   
-  Wire.begin();
-//  Wire.begin(26,27);
+//  Wire.begin();
+  Wire.begin(26,27);
 //  Wire.setClock(400000);
   Wire.setClock(1000000);
 
@@ -43,8 +43,8 @@ void setup() {
   NOA_PUB_I2C_PD_RreadAllRegs(PD_ADDR);
 //  NOA_PUB_I2C_PD_Testing(PD_ADDR);
 
-  tcpm_init(0);
-  delay(50);
+//  tcpm_init(0);
+//  delay(50);
   pd_init(0);
   delay(50);
 }

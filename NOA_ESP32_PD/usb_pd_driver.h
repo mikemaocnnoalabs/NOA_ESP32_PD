@@ -29,6 +29,7 @@ extern "C" {
 //#define CONFIG_USB_PD_GIVE_BACK
 //#define CONFIG_USB_PD_SIMPLE_DFP
 //#define CONFIG_USB_PD_TCPM_TCPCI
+#define PD_PREFER_HIGH_VOLTAGE
 
 /* Default pull-up value on the USB-C ports when they are used as source. */
 #define CONFIG_USB_PD_PULLUP TYPEC_RP_USB

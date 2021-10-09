@@ -18,6 +18,9 @@
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #endif
 
+extern int pd_source_cap_current_index;
+extern int pd_source_cap_max_index;
+
 static int rw_flash_changed = 1;
 
 int pd_check_requested_voltage(uint32_t rdo, const int port)
@@ -92,8 +95,8 @@ int pd_find_pdo_index(int port, int max_mv, uint32_t *selected_pdo)
 	int cur_uw = 0;
 	int prefer_cur;
 	const uint32_t *src_caps = pd_src_caps[port];
-  extern int pd_source_cap_current_index;
-#if 0
+//  extern int pd_source_cap_current_index;
+#if 1
 	/* max voltage is always limited by this boards max request */
 	max_mv = MIN(max_mv, PD_MAX_VOLTAGE_MV);
 
@@ -180,7 +183,7 @@ int pd_build_request(int port, uint32_t *rdo, uint32_t *ma, uint32_t *mv,
 	int uw;
 	int max_or_min_ma;
 	int max_or_min_mw;
-  extern int pd_source_cap_current_index;
+//  extern int pd_source_cap_current_index;
 
 	if (req_type == PD_REQUEST_VSAFE5V) {
 		/* src cap 0 should be vSafe5V */
@@ -245,7 +248,7 @@ void pd_process_source_cap(int port, int cnt, uint32_t *src_caps)
 
 #ifdef CONFIG_CHARGE_MANAGER
 	/* Get max power info that we could request */
-	pd_find_pdo_index(port, PD_MAX_VOLTAGE_MV, &pdo);
+	pd_source_cap_current_index = pd_find_pdo_index(port, PD_MAX_VOLTAGE_MV, &pdo);
 	pd_extract_pdo_power(pdo, &ma, &mv);
 
 	/* Set max. limit, but apply 500mA ceiling */
