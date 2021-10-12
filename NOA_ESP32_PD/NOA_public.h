@@ -16,9 +16,13 @@ extern "C" {
 #endif
 
 void NOA_PUB_ESP32DebugInit(void);
-void NOA_PUB_I2C_Scanner(void);
-void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t PD_ADDR);
-void NOA_PUB_I2C_PD_Testing(uint8_t PD_ADDR);
+void NOA_PUB_I2C_Scanner(uint8_t nIndex);
+void NOA_PUB_I2C_ReceiveBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length);
+void NOA_PUB_I2C_SendBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length);
+
+void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
+void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
+void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR);
 
 #ifdef __cplusplus
 }

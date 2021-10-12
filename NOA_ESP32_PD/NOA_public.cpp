@@ -36,24 +36,31 @@ void NOA_PUB_ESP32DebugInit() {
   DBGLOG(Info, "End of Debug LOG setup.")
 }
 
-void NOA_PUB_I2C_Scanner(){
+void NOA_PUB_I2C_Scanner(uint8_t nIndex){
   int nDevices = 0;
   Serial.println("Scanning...");
   for (byte address = 1; address < 127; ++address) {
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
+    byte error = 0;
+    if (nIndex == 0) {
+      Wire.beginTransmission(address);
+      error = Wire.endTransmission();
+    } else {
+      Wire1.beginTransmission(address);
+      error = Wire1.endTransmission();
+    }
 
     if (error == 0) {
-      Serial.print("I2C device found at address 0x");
+      Serial.print("I2C ");
+      Serial.print(nIndex);
+      Serial.print(" bus found device at address 0x");
       if (address < 16) {
         Serial.print("0");
       }
       Serial.print(address, HEX);
       Serial.println("  !");
-
       ++nDevices;
     } else if (error == 4) {
       Serial.print("Unknown error at address 0x");
@@ -63,21 +70,36 @@ void NOA_PUB_I2C_Scanner(){
       Serial.println(address, HEX);
     }
   }
+
   if (nDevices == 0) {
-    Serial.println("No I2C devices found\n");
+    Serial.print("No I2C devices found in I2C ");
+    Serial.print(nIndex);
+    Serial.println(" bus\n");
   } else {
     Serial.println("done\n");
   }
 //  delay(5000); // Wait 5 seconds for next scan
 }
 
-void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t PD_ADDR) {
-  Wire.beginTransmission(PD_ADDR);
-  Wire.write(0x01);
-  Wire.endTransmission(false);
-  Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)16, true);
+void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
+  if (nIndex == 0) {
+    Wire.beginTransmission(PD_ADDR);
+    Wire.write(0x01);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)16, true);
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(0x01);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)16, true);
+  }
+  uint8_t c = 0;
   for (int i=1; i<=16; i++) {  // FUSB302 只有0x1-0x10 和0x3C-0x42寄存器 0x43是FIFO data
-    uint8_t c = Wire.read();
+    if (nIndex == 0) {
+      c = Wire.read();
+    } else {
+      c = Wire1.read();
+    }
     Serial.print("Address: 0x");
     Serial.print(i, HEX);
     Serial.print(", Value: 0x");
@@ -125,62 +147,170 @@ void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t PD_ADDR) {
         break;
     }
   }
-  
-  Wire.beginTransmission(PD_ADDR);
-  Wire.write(0x3C);
-  Wire.endTransmission(false);
-  Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)7, true);
+
+  if (nIndex == 0) {
+    Wire.beginTransmission(PD_ADDR);
+    Wire.write(0x3C);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)7, true); 
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(0x3C);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)7, true);
+  }
+  c = 0;
   for (int i=0x3C; i<=0x42; i++) {
-    uint8_t c = Wire.read();
+    if (nIndex == 0) {
+      c = Wire.read();
+    } else {
+      c = Wire1.read();
+    }
     Serial.print("Address: 0x");
     Serial.print(i, HEX);
     Serial.print(", Value: 0x");
     Serial.println(c, HEX);
   }
-  
   Serial.println();
   Serial.println();
 }
 
-void NOA_PUB_I2C_SetReg(uint8_t PD_ADDR, uint8_t addr, uint8_t value) {
-  Wire.beginTransmission(PD_ADDR);
-  Wire.write(addr);
-  Wire.write(value);
-  Wire.endTransmission(true);
+void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
+  if (nIndex == 0) {
+    Wire.beginTransmission(PD_ADDR);
+    Wire.write(0x00);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)11, true);
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(0x00);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)11, true);
+  }
+  uint8_t c = 0;
+  for (int i=0x0; i<=0x0A; i++) {  // NCP81239 只有0x0-0x0A(read write) 0x10-0x15(read only)
+    if (nIndex == 0) {
+      c = Wire.read();
+    } else {
+      c = Wire1.read();
+    }
+    Serial.print("Address: 0x");
+    Serial.print(i, HEX);
+    Serial.print(", Value: 0x");
+    Serial.println(c, HEX);
+    switch(i) {
+      case 1:
+        break;
+      case 2:
+        break;
+      case 3:
+        break;
+    }
+  }
+  if (nIndex == 0) {
+    Wire.beginTransmission(PD_ADDR);
+    Wire.write(0x10);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)6, true); 
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(0x10);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)6, true);
+  }
+  c = 0;
+  for (int i=0x10; i<=0x15; i++) {
+    if (nIndex == 0) {
+      c = Wire.read();
+    } else {
+      c = Wire1.read();
+    }
+    Serial.print("Address: 0x");
+    Serial.print(i, HEX);
+    Serial.print(", Value: 0x");
+    Serial.println(c, HEX);
+  }
+  Serial.println();
+  Serial.println();
 }
 
-uint8_t NOA_PUB_I2C_GetReg(uint8_t PD_ADDR, uint8_t addr) {
-  Wire.beginTransmission(PD_ADDR);
-  Wire.write(addr);
-  Wire.endTransmission(false);
-  Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)1, true);
-  return Wire.read();
-}
-
-void NOA_PUB_I2C_SendBytes(uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length) {
-  if (length > 0) {
+void NOA_PUB_I2C_SetReg(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t value) {
+  if (nIndex == 0) {
     Wire.beginTransmission(PD_ADDR);
     Wire.write(addr);
-    for (uint16_t i=0; i<length; i++) {
-      Wire.write(data[i]);
-    }
-    Wire.endTransmission(true);
+    Wire.write(value);
+    Wire.endTransmission(true); 
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(addr);
+    Wire1.write(value);
+    Wire1.endTransmission(true); 
   }
 }
 
-void NOA_PUB_I2C_ReceiveBytes(uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length) {
-  if (length > 0) {
+uint8_t NOA_PUB_I2C_GetReg(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr) {
+  if (nIndex == 0) {
     Wire.beginTransmission(PD_ADDR);
     Wire.write(addr);
     Wire.endTransmission(false);
-    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)length, true);
-    for (uint16_t i=0; i<length; i++) {
-      data[i] = Wire.read();
+    Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)1, true);
+    return Wire.read(); 
+  } else {
+    Wire1.beginTransmission(PD_ADDR);
+    Wire1.write(addr);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)1, true);
+    return Wire1.read();
+  }
+}
+
+void NOA_PUB_I2C_SendBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length) {
+  if (length > 0) {
+    if (nIndex == 0) {
+      Wire.beginTransmission(PD_ADDR);
+      Wire.write(addr);
+      for (uint16_t i=0; i<length; i++) {
+        Wire.write(data[i]);
+      }
+      Wire.endTransmission(true); 
+    } else {
+      Wire1.beginTransmission(PD_ADDR);
+      Wire1.write(addr);
+      for (uint16_t i=0; i<length; i++) {
+        Wire1.write(data[i]);
+      }
+      Wire1.endTransmission(true); 
     }
   }
 }
 
-bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
+void NOA_PUB_I2C_ReceiveBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length) {
+  if (length > 0) {
+    if (nIndex == 0) {
+      Wire.beginTransmission(PD_ADDR);
+      Wire.write(addr);
+      Wire.endTransmission(false);
+      Wire.requestFrom((uint16_t)PD_ADDR, (uint8_t)length, true);
+      for (uint16_t i=0; i<length; i++) {
+        data[i] = Wire.read();
+      }
+    } else {
+//     Serial.println(PD_ADDR, HEX);
+//     Serial.println(addr, HEX);
+//     Serial.println(length);
+      Wire1.beginTransmission(PD_ADDR);
+      Wire1.write(addr);
+      Wire1.endTransmission(false);
+      Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)length, true);
+      for (uint16_t i=0; i<length; i++) {
+        data[i] = Wire1.read();
+//        Serial.println(data[i], HEX);
+      }
+    }
+  }
+}
+
+bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t nIndex, uint8_t PD_ADDR) {
   uint8_t num_data_objects;
   uint8_t message_id;
   uint8_t port_power_role;
@@ -188,7 +318,7 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
   uint8_t port_data_role;
   uint8_t message_type;
   
-  NOA_PUB_I2C_ReceiveBytes(PD_ADDR, 0x43, rx_buf, 1);
+  NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, 1);
   if (rx_buf[0] != 0xE0) {
     // implement other features later
     Serial.print("FAIL: 0x");
@@ -196,7 +326,7 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
     return false;
   }
 
-  NOA_PUB_I2C_ReceiveBytes(PD_ADDR, 0x43, rx_buf, 2);
+  NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, 2);
   
   num_data_objects = ((rx_buf[1] & 0x70) >> 4);
   message_id       = ((rx_buf[1] & 0x0E) >> 1);
@@ -220,7 +350,7 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
   Serial.print("message_type     = ");
   Serial.println(message_type, DEC);
 
-  NOA_PUB_I2C_ReceiveBytes(PD_ADDR, 0x43, rx_buf, (num_data_objects*4));
+  NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, (num_data_objects*4));
   // each data object is 32 bits
   for (uint8_t i=0; i<num_data_objects; i++) {
     Serial.print("Object: 0x");
@@ -228,7 +358,7 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
   }  
 
   // CRC-32
-  NOA_PUB_I2C_ReceiveBytes(PD_ADDR, 0x43, rx_buf, 4);
+  NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, 4);
   Serial.print("CRC-32: 0x");
   Serial.println(*(long *)rx_buf, HEX);
   Serial.println();
@@ -237,6 +367,7 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t PD_ADDR) {
 }
 
 void NOA_PUB_I2C_PD_SendPacket( \
+      uint8_t nIndex,  \
       uint8_t PD_ADDR,  \
       uint8_t num_data_objects, \
       uint8_t message_id, \
@@ -286,46 +417,46 @@ void NOA_PUB_I2C_PD_SendPacket( \
   }
   Serial.println();
 
-  temp = NOA_PUB_I2C_GetReg(PD_ADDR, 0x06);
-  NOA_PUB_I2C_SendBytes(PD_ADDR, 0x43, tx_buf, (10+(4*(num_data_objects & 0x1F))) );
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x06, (temp | (0x01))); // Flip on TX_START
+  temp = NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x06);
+  NOA_PUB_I2C_SendBytes(nIndex, PD_ADDR, 0x43, tx_buf, (10+(4*(num_data_objects & 0x1F))) );
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x06, (temp | (0x01))); // Flip on TX_START
 }
 
-void NOA_PUB_I2C_PD_Testing(uint8_t PD_ADDR)
+void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR)
 {
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x0C, 0x01); // Reset FUSB302
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x0B, 0x0F); // FULL POWER!
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x07, 0x04); // Flush RX
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x02, 0x07); // Switch on MEAS_CC1
-  NOA_PUB_I2C_SetReg(PD_ADDR, 0x03, 0x25); // Enable BMC Tx on CC1
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x0C, 0x01); // Reset FUSB302
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x0B, 0x0F); // FULL POWER!
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x07, 0x04); // Flush RX
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x02, 0x07); // Switch on MEAS_CC1
+  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x03, 0x25); // Enable BMC Tx on CC1
 
-//  NOA_PUB_I2C_SetReg(PD_ADDR, 0x03, 0x05); // Enable BMC Tx on CC1
+//  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x03, 0x05); // Enable BMC Tx on CC1
 
-//  NOA_PUB_I2C_SetReg(PD_ADDR, 0x02, 0x0B); // Switch on MEAS_CC2  
-//  NOA_PUB_I2C_SetReg(PD_ADDR, 0x03, 0x26); // Enable BMC Tx on CC2
-//  NOA_PUB_I2C_SetReg(PD_ADDR, 0x03, 0x06); // Enable BMC Tx on CC2
+//  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x02, 0x0B); // Switch on MEAS_CC2  
+//  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x03, 0x26); // Enable BMC Tx on CC2
+//  NOA_PUB_I2C_SetReg(nIndex, PD_ADDR, 0x03, 0x06); // Enable BMC Tx on CC2
 
-  NOA_PUB_I2C_PD_RreadAllRegs(PD_ADDR);
+  NOA_PUB_I2C_PD_RreadAllRegs(nIndex, PD_ADDR);
   
-  NOA_PUB_I2C_PD_SendPacket(PD_ADDR, 0, 2, 0, 1, 0, 0x7, NULL);
+  NOA_PUB_I2C_PD_SendPacket(nIndex, PD_ADDR, 0, 2, 0, 1, 0, 0x7, NULL);
   delayMicroseconds(250);
-  while ( NOA_PUB_I2C_GetReg(PD_ADDR, 0x41) & 0x20 ) {  // 判断RX里面不为NULL
+  while ( NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x41) & 0x20 ) {  // 判断RX里面不为NULL
     delay(1);
   }
-  NOA_PUB_I2C_PD_ReceivePacket(PD_ADDR);
-  DBGLOG(Info, "Check 0x41 register = 0x%02X.", NOA_PUB_I2C_GetReg(PD_ADDR, 0x41));
+  NOA_PUB_I2C_PD_ReceivePacket(nIndex, PD_ADDR);
+  DBGLOG(Info, "Check 0x41 register = 0x%02X.", NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x41));
   
   temp_buf[0] = 0b01100100;
   temp_buf[1] = 0b10010000;
   temp_buf[2] = 0b00000001;
   temp_buf[3] = 0b00100000;
-  NOA_PUB_I2C_PD_SendPacket(PD_ADDR, 1, 3, 0, 1, 0, 0x2, temp_buf);
+  NOA_PUB_I2C_PD_SendPacket(nIndex, PD_ADDR, 1, 3, 0, 1, 0, 0x2, temp_buf);
   delayMicroseconds(250);
-  while ( NOA_PUB_I2C_GetReg(PD_ADDR, 0x41) & 0x20 ) {
+  while ( NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x41) & 0x20 ) {
     delay(1);
   }
-  NOA_PUB_I2C_PD_ReceivePacket(PD_ADDR);
-  DBGLOG(Info, "Check 0x41 register = 0x%02X.", NOA_PUB_I2C_GetReg(PD_ADDR, 0x41));
+  NOA_PUB_I2C_PD_ReceivePacket(nIndex, PD_ADDR);
+  DBGLOG(Info, "Check 0x41 register = 0x%02X.", NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x41));
 
-  NOA_PUB_I2C_PD_RreadAllRegs(PD_ADDR);
+  NOA_PUB_I2C_PD_RreadAllRegs(nIndex, PD_ADDR);
 }

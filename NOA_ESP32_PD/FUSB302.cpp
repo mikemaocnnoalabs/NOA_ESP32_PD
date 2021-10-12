@@ -951,7 +951,25 @@ void fusb302_tcpm_set_bist_test_data(int port)
 	tcpc_write(port, TCPC_REG_CONTROL3, reg);
 }
 
-const struct tcpm_drv fusb302_tcpm_drv = {
+const struct tcpm_drv fusb302_tcpm_drv_SNK = {
+  .init     = &fusb302_tcpm_init,
+  .release    = &fusb302_tcpm_release,
+  .get_cc     = &fusb302_tcpm_get_cc,
+#ifdef CONFIG_USB_PD_VBUS_DETECT_TCPC
+  .get_vbus_level   = &fusb302_tcpm_get_vbus_level,
+#endif
+  .select_rp_value  = &fusb302_tcpm_select_rp_value,
+  .set_cc     = &fusb302_tcpm_set_cc,
+  .set_polarity   = &fusb302_tcpm_set_polarity,
+  .set_vconn    = &fusb302_tcpm_set_vconn,
+  .set_msg_header   = &fusb302_tcpm_set_msg_header,
+  .set_rx_enable    = &fusb302_tcpm_set_rx_enable,
+  .get_message    = &fusb302_tcpm_get_message,
+  .transmit   = &fusb302_tcpm_transmit,
+  .tcpc_alert   = &fusb302_tcpc_alert,
+};
+
+const struct tcpm_drv fusb302_tcpm_drv_SRC = {
   .init     = &fusb302_tcpm_init,
   .release    = &fusb302_tcpm_release,
   .get_cc     = &fusb302_tcpm_get_cc,
