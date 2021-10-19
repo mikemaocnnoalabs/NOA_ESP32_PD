@@ -101,7 +101,7 @@ StructNCP81239RegisterMap g_stPMICData;
 int     ncp81239_pmic_init() {
   g_stPMICData = g_stPmicInitialData;
 
-  DBGLOG(Info, "INIT:En pol %d", g_stPMICData.b1CR00EnPol);
+/*  DBGLOG(Info, "INIT:En pol %d", g_stPMICData.b1CR00EnPol);
   DBGLOG(Info, "INITc:En pup %d", g_stPMICData.b1CR00EnPup);
   DBGLOG(Info, "INIT:En mask %d", g_stPMICData.b1CR00EnMask);
   DBGLOG(Info, "INIT:En int %d", g_stPMICData.b1CR00EnInternal);
@@ -148,7 +148,7 @@ int     ncp81239_pmic_init() {
   DBGLOG(Info, "INIT:Thermal Sensor Flag %d", g_stPMICData.b1CR14IntTsdFlag);
   DBGLOG(Info, "INIT:Vchn Flag %d", g_stPMICData.b1CR14IntVchnFlag);
   DBGLOG(Info, "INIT:IIC ACK Flag %d", g_stPMICData.b1CR14IntI2cAckFlag);
-  DBGLOG(Info, "INIT:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag);
+  DBGLOG(Info, "INIT:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag); */
   return 0;
 }
 
@@ -157,7 +157,7 @@ int ncp81239_pmic_get_tatus() {
 
   NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
 
-  DBGLOG(Info, "Pmic:En pol %d", g_stPMICData.b1CR00EnPol);
+/*  DBGLOG(Info, "Pmic:En pol %d", g_stPMICData.b1CR00EnPol);
   DBGLOG(Info, "Pmic:En pup %d", g_stPMICData.b1CR00EnPup);
   DBGLOG(Info, "Pmic:En mask %d", g_stPMICData.b1CR00EnMask);
   DBGLOG(Info, "Pmic:En int %d", g_stPMICData.b1CR00EnInternal);
@@ -191,11 +191,11 @@ int ncp81239_pmic_get_tatus() {
   DBGLOG(Info, "Pmic:Int mask tsd %d", g_stPMICData.b1CR09IntMaskTsd);
   DBGLOG(Info, "Pmic:Int mask vchn %d", g_stPMICData.b1CR09IntMaskVchn);
   DBGLOG(Info, "Pmic:Int mask i2c ack %d", g_stPMICData.b1CR09IntMaskI2cAck);
-  DBGLOG(Info, "Pmic:Int mask shutdown %d", g_stPMICData.b1CR0AIntMaskShutDown);
+  DBGLOG(Info, "Pmic:Int mask shutdown %d", g_stPMICData.b1CR0AIntMaskShutDown); */
 
   NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData + _NCP81239_CTRL_REG10), 6);
 
-  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData.ucCR10VfbValue);
+/*  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData.ucCR10VfbValue);
   DBGLOG(Info, "Pmic:Vin Value %d", g_stPMICData.ucCR11VinValue);
   DBGLOG(Info, "Pmic:CS2 Value %d", g_stPMICData.ucCR12Cs2Value);
   DBGLOG(Info, "Pmic:CS1 Value %d", g_stPMICData.ucCR13Cs1Value);
@@ -206,7 +206,7 @@ int ncp81239_pmic_get_tatus() {
   DBGLOG(Info, "Pmic:Thermal Sensor Flag %d", g_stPMICData.b1CR14IntTsdFlag);
   DBGLOG(Info, "Pmic:Vchn Flag %d", g_stPMICData.b1CR14IntVchnFlag);
   DBGLOG(Info, "Pmic:IIC ACK Flag %d", g_stPMICData.b1CR14IntI2cAckFlag);
-  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag);
+  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag); */
 
   return ucResult;
 }

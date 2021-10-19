@@ -4,7 +4,6 @@
  * Created: 11/11/2017 23:55:12
  *  Author: jason
  */ 
-
 #include "usb_pd_driver.h"
 #include "usb_pd.h"
 #include "Arduino.h"
@@ -15,6 +14,7 @@
 
 extern struct tc_module tc_instance;
 extern uint32_t g_us_timestamp_upper_32bit;
+extern int ncp_bb_con_en_pin;
 
 uint32_t pd_task_set_event(uint32_t event, int wait_for_reply)
 {
@@ -170,10 +170,14 @@ int pd_set_power_supply_ready(int port)
 	/* notify host of power info change */
 	pd_send_host_event(PD_EVENT_POWER_CHANGE);
 #endif // if 0
+  if (port == 1) {
+//    digitalWrite(ncp_bb_con_en_pin, LOW); 
+    digitalWrite(ncp_bb_con_en_pin, HIGH); 
+  }
 	return EC_SUCCESS; /* we are ready */
 }
 
-void pd_transition_voltage(int idx)
+void pd_transition_voltage(int port, int idx)
 {
 	/* No-operation: we are always 5V */
 	
@@ -209,7 +213,12 @@ void pd_transition_voltage(int idx)
 	vbus[DUT].mv = vbus[CHG].mv;
 	vbus[DUT].ma = vbus[CHG].ma;
 #endif // if 0
-
+#if 1 // mike SRC control only
+  if (port == 1) {
+//    digitalWrite(ncp_bb_con_en_pin, LOW); 
+    digitalWrite(ncp_bb_con_en_pin, HIGH); 
+  }
+#endif
 }
 
 void pd_check_dr_role(int port, int dr_role, int flags)

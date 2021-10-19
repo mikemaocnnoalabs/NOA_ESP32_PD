@@ -1101,7 +1101,8 @@ int pd_board_check_request(uint32_t rdo, int pdo_cnt);
  *
  * param idx index of the new voltage in the source PDO table.
  */
-void pd_transition_voltage(int idx);
+// void pd_transition_voltage(int idx);
+void pd_transition_voltage(int port, int idx);
 
 /**
  * Go back to the default/safe state of the power supply

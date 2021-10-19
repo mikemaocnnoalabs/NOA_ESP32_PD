@@ -156,6 +156,7 @@ static void fusb302_detect_cc_pin_source_manual(int port, int *cc1_lvl, int *cc2
 {
 	int cc1_measure = TCPC_REG_SWITCHES0_MEAS_CC1;
 	int cc2_measure = TCPC_REG_SWITCHES0_MEAS_CC2;
+//  DBGLOG(Debug, "Port %d SRC vconn_enabled %d cc_polarity %d", port, state[port].vconn_enabled, state[port].cc_polarity);
 
 	if (state[port].vconn_enabled) {
 		/* If VCONN enabled, measure cc_pin that matches polarity */
@@ -179,7 +180,7 @@ static void fusb302_detect_cc_pin_sink(int port, int *cc1, int *cc2)
 	int orig_meas_cc2;
 	int bc_lvl_cc1;
 	int bc_lvl_cc2;
-	
+//	DBGLOG(Debug, "Port %d SINK vconn_enabled %d cc_polarity %d", port, state[port].vconn_enabled, state[port].cc_polarity);
 	/*
 	 * Measure CC1 first.
 	 */
@@ -316,6 +317,16 @@ static int fusb302_tcpm_send_message(int port, uint16_t header, const uint32_t *
 	reg = fusb302_TKN_TXON;
 	buf[buf_pos++] = fusb302_TKN_TXON;
 
+  if (port == 1) {
+//    Serial.print("buf_pos = ");
+//    Serial.println(buf_pos);
+//    for (int i = 0; i < buf_pos; i++) {
+//      Serial.print(buf[i], HEX);
+//      Serial.print(" ");
+//    }
+//    Serial.println(" ");
+  }
+
 	/* burst write for speed! */
 	rv = tcpc_xfer(port, buf, buf_pos, 0, 0, I2C_XFER_SINGLE);
 
@@ -360,10 +371,13 @@ static int fusb302_tcpm_select_rp_value(int port, int rp)
 
 static int fusb302_tcpm_init(int port)
 {
-	int reg;
+	int reg = 0;
 
 	/* set default */
 	state[port].cc_polarity = -1;
+  state[port].vconn_enabled = -1;
+  state[port].pulling_up = -1;
+  state[port].rx_enable = -1;
 
 	/* set the voltage threshold for no connect detection (vOpen) */
 	state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_VNC_MV);
@@ -435,6 +449,7 @@ static int fusb302_tcpm_release(int port)
 
 static int fusb302_tcpm_get_cc(int port, int *cc1, int *cc2)
 {
+//  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
 	if (state[port].pulling_up) {
 		/* Source mode? */
 		fusb302_detect_cc_pin_source_manual(port, cc1, cc2);
@@ -452,6 +467,10 @@ static int fusb302_tcpm_set_cc(int port, int pull)
 	
 	/* NOTE: FUSB302 toggles a single pull-up between CC1 and CC2 */
 	/* NOTE: FUSB302 Does not support Ra. */
+//  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
+  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
+  DBGLOG(Debug, "Port %d pulling_up %d pull %d", port, state[port].pulling_up, pull);
+//  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
 	switch (pull) {
 	case TYPEC_CC_RP:
 		/* enable the pull-up we know to be necessary */
@@ -522,8 +541,13 @@ static int fusb302_tcpm_set_cc(int port, int pull)
 static int fusb302_tcpm_set_polarity(int port, int polarity)
 {
 	/* Port polarity : 0 => CC1 is CC line, 1 => CC2 is CC line */
-	int reg;
-	
+	int reg = 0;
+
+//  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
+  DBGLOG(Debug, "Port %d cc_polarity %d polarity %d", port, state[port].cc_polarity, polarity);
+//  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
+//  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
+
 	tcpc_read(port, TCPC_REG_SWITCHES0, &reg);
 
 	/* clear VCONN switch bits */
@@ -580,8 +604,13 @@ static int fusb302_tcpm_set_vconn(int port, int enable)
 	 * Therefore at startup, tcpm_set_polarity should be called first,
 	 * or else live with the default put into tcpm_init.
 	 */
-	int reg;
+	int reg = 0;
 
+  DBGLOG(Debug, "Port %d vconn %d enable %d", port, state[port].vconn_enabled, enable);
+//  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
+//  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
+//  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
+  
 	/* save enable state for later use */
 	state[port].vconn_enabled = enable;
 
@@ -605,6 +634,7 @@ static int fusb302_tcpm_set_vconn(int port, int enable)
 static int fusb302_tcpm_set_msg_header(int port, int power_role, int data_role)
 {
 	int reg;
+  DBGLOG(Debug, "Port %d power_role %d data_role %d", port, power_role, data_role);
 
 	tcpc_read(port, TCPC_REG_SWITCHES1, &reg);
 
@@ -623,7 +653,11 @@ static int fusb302_tcpm_set_msg_header(int port, int power_role, int data_role)
 
 static int fusb302_tcpm_set_rx_enable(int port, int enable)
 {
-	int reg;
+	int reg = 0;
+//  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
+//  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
+//  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
+  DBGLOG(Debug, "Port %d rx_enable %d enable %d", port, state[port].rx_enable, enable);
 
 	state[port].rx_enable = enable;
 	
@@ -695,8 +729,8 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 	 * is the PD packet (not header) and CRC.
 	 * maximum size necessary = 28 + 4 = 32
 	 */
-	uint8_t buf[32];
-	int rv, len;
+	uint8_t buf[32] = {0};
+	int rv = 0, len = 0;
 
 	/* If our FIFO is empty then we have no packet */
 	if (fusb302_rx_fifo_is_empty(port))
@@ -724,10 +758,12 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		 */
 		// rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_START);
     memset(buf, '\0', sizeof(buf));
-		rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_STOP);
-//    DBGLOG(Info, "Buf[0] = 0x%02X", buf[0]);
-//    DBGLOG(Info, "Buf[1] = 0x%02X", buf[1]);
-//    DBGLOG(Info, "Buf[2] = 0x%02X", buf[2]);
+    rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_STOP);
+    if (port == 1) {
+      DBGLOG(Info, "p%d Buf[0] = 0x%02X", port, buf[0]);
+      DBGLOG(Info, "p%d Buf[1] = 0x%02X", port, buf[1]);
+      DBGLOG(Info, "p%d Buf[2] = 0x%02X", port, buf[2]);
+    }
 
 		/* Grab the header */
 		*head = (buf[1] & 0xFF);
@@ -735,7 +771,9 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 
 		/* figure out packet length, subtract header bytes */
 		len = get_num_bytes(*head) - 2;
-//    DBGLOG(Info, "len from head = %d", len);
+    if (port == 1) {
+//      DBGLOG(Info, "p%d rv %d len from head = %d", port, rv, len);
+    }
 
 		/*
 		 * PART 3 OF BURST READ: Read everything else.
@@ -743,22 +781,24 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		 * add 4 to len to read CRC out
 		 */
 		rv |= tcpc_xfer(port, 0, 0, buf, len+4, I2C_XFER_STOP);
-
+    if (port == 1) {
+      DBGLOG(Info, "rv %d head TYPE %d CNT %d Buf = ", rv, PD_HEADER_TYPE(*head), PD_HEADER_CNT(*head));
+      for (int i = 0; i < len + 4; i++) {
+        Serial.print(buf[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println(" ");
+    }
 	} while (!rv && PACKET_IS_GOOD_CRC(*head) && !fusb302_rx_fifo_is_empty(port));
-
-//  DBGLOG(Info, "Buf = ");
-//  for (int i = 0; i < len; i++) {
-//    Serial.print(buf[i], HEX);
-//    Serial.print(" ");
-//  }
-//  Serial.println(" ");
-   
+  
 	if (!rv) {
 		/* Discard GoodCRC packets */
-		if (PACKET_IS_GOOD_CRC(*head))
+		if (PACKET_IS_GOOD_CRC(*head)) {
 			rv = EC_ERROR_UNKNOWN;
-		else
+      DBGLOG(Info, "p%d get GoodCRC package", port);
+		} else {
 			memcpy(payload, buf, len);
+		}
 	}
 
 	/*
@@ -811,7 +851,8 @@ static int fusb302_tcpm_transmit(int port, enum tcpm_transmit_type type,
 		fusb302_tcpm_send_message(port, header, data, buf, buf_pos);
 	    // wait for the GoodCRC to come back before we let the rest
 	    // of the code do stuff like change polarity and miss it
-	    delayMicroseconds(1200);
+//	    delayMicroseconds(1200);
+      delayMicroseconds(600); // mike 20211018
 	    return 0;
 	case TCPC_TX_HARD_RESET:
 		/* Simply hit the SEND_HARD_RESET bit */
@@ -870,70 +911,69 @@ void fusb302_tcpc_alert(int port)
 	tcpc_read(port, TCPC_REG_INTERRUPTA, &interrupta);
 	tcpc_read(port, TCPC_REG_INTERRUPTB, &interruptb);
 
-  if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
-//    DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
+  if (port == 0) {
+    if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
+//      DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
+    }
+  } else {
+    if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
+      DBGLOG(Info, "p%d interrupt %d interrupta %d interruptb %d", port, interrupt, interrupta, interruptb);
+    } 
   }
-	/*
-		* Ignore BC_LVL changes when transmitting / receiving PD,
-		* since CC level will constantly change.
-		*/
-	if (state[port].rx_enable)
-		interrupt &= ~TCPC_REG_INTERRUPT_BC_LVL;
 
-	if (interrupt & TCPC_REG_INTERRUPT_BC_LVL) {
-		/* CC Status change */
-		//task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_CC, 0);
-	}
+    /*
+    * Ignore BC_LVL changes when transmitting / receiving PD,
+    * since CC level will constantly change.
+    */
+    if (state[port].rx_enable)
+      interrupt &= ~TCPC_REG_INTERRUPT_BC_LVL;
 
-	if (interrupt & TCPC_REG_INTERRUPT_COLLISION) {
-		/* packet sending collided */
-		pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
-	}
+    if (interrupt & TCPC_REG_INTERRUPT_BC_LVL) {
+      /* CC Status change */
+      //task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_CC, 0);
+    }
 
-	/* GoodCRC was received, our FIFO is now non-empty */
-	if (interrupta & TCPC_REG_INTERRUPTA_TX_SUCCESS) {
-		//task_set_event(PD_PORT_TO_TASK_ID(port),
-		//		PD_EVENT_RX, 0);
+    if (interrupt & TCPC_REG_INTERRUPT_COLLISION) {
+      /* packet sending collided */
+      pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
+    }
 
-		pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
-	}
+    /* GoodCRC was received, our FIFO is now non-empty */
+    if (interrupta & TCPC_REG_INTERRUPTA_TX_SUCCESS) {
+      //task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_RX, 0);
+      pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
+    }
 
-	if (interrupta & TCPC_REG_INTERRUPTA_RETRYFAIL) {
-		/* all retries have failed to get a GoodCRC */
-		pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
-	}
+    if (interrupta & TCPC_REG_INTERRUPTA_RETRYFAIL) {
+      /* all retries have failed to get a GoodCRC */
+      pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
+    }
 
-	if (interrupta & TCPC_REG_INTERRUPTA_HARDSENT) {
-		/* hard reset has been sent */
+    if (interrupta & TCPC_REG_INTERRUPTA_HARDSENT) {
+      /* hard reset has been sent */
+      /* bring FUSB302 out of reset */
+      fusb302_pd_reset(port);
+      pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
+    }
 
-		/* bring FUSB302 out of reset */
-		fusb302_pd_reset(port);
+    if (interrupta & TCPC_REG_INTERRUPTA_HARDRESET) {
+      /* hard reset has been received */
+      /* bring FUSB302 out of reset */
+      fusb302_pd_reset(port);
+      pd_execute_hard_reset(port);
+      //task_wake(PD_PORT_TO_TASK_ID(port));
+    }
 
-		pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
-	}
-
-	if (interrupta & TCPC_REG_INTERRUPTA_HARDRESET) {
-		/* hard reset has been received */
-
-		/* bring FUSB302 out of reset */
-		fusb302_pd_reset(port);
-
-		pd_execute_hard_reset(port);
-
-		//task_wake(PD_PORT_TO_TASK_ID(port));
-	}
-
-	if (interruptb & TCPC_REG_INTERRUPTB_GCRCSENT) {
-		/* Packet received and GoodCRC sent */
-		/* (this interrupt fires after the GoodCRC finishes) */
-		if (state[port].rx_enable) {
-			//task_set_event(PD_PORT_TO_TASK_ID(port),
-			//		PD_EVENT_RX, 0);
-		} else {
-			/* flush rx fifo if rx isn't enabled */
-			fusb302_flush_rx_fifo(port);
-		}
-	}
+    if (interruptb & TCPC_REG_INTERRUPTB_GCRCSENT) {
+      /* Packet received and GoodCRC sent */
+      /* (this interrupt fires after the GoodCRC finishes) */
+      if (state[port].rx_enable) {
+        //task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_RX, 0);
+      } else {
+        /* flush rx fifo if rx isn't enabled */
+        fusb302_flush_rx_fifo(port);
+      }
+    }
 }
 
 /* For BIST receiving */
