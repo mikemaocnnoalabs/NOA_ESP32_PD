@@ -1405,8 +1405,13 @@ void pd_send_vdm(int port, uint32_t vid, int cmd, const uint32_t *data,
 		 int count);
 
 /* Power Data Objects for the source and the sink */
+#if 0
 extern const uint32_t pd_src_pdo[];
 extern const int pd_src_pdo_cnt;
+#else
+extern uint32_t pd_src_pdo[PDO_MAX_OBJECTS];
+extern int pd_src_pdo_cnt;
+#endif
 extern const uint32_t pd_src_pdo_max[];
 extern const int pd_src_pdo_max_cnt;
 extern const uint32_t pd_snk_pdo[];

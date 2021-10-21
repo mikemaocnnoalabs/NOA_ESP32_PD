@@ -4,17 +4,30 @@
  * Created: 11/11/2017 23:55:12
  *  Author: jason
  */ 
+#include <Arduino.h>
+
 #include "usb_pd_driver.h"
 #include "usb_pd.h"
-#include "Arduino.h"
+
+#include "NCP81239.h"
+#include "NOA_public.h"
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(t) (sizeof(t) / sizeof(t[0]))
 #endif
 
+#ifdef CONFIG_COMMON_RUNTIME
+#define CPRINTS(format, args...) cprints(CC_USBPD, format, ## args)
+#define CPRINTF(format, args...) cprintf(CC_USBPD, format, ## args)
+#else
+#define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
+#define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
+#endif
+
 extern struct tc_module tc_instance;
 extern uint32_t g_us_timestamp_upper_32bit;
 extern int ncp_bb_con_en_pin;
+extern StructNCP81239RegisterMap g_stPMICData;
 
 uint32_t pd_task_set_event(uint32_t event, int wait_for_reply)
 {
@@ -28,10 +41,23 @@ uint32_t pd_task_set_event(uint32_t event, int wait_for_reply)
 	return 0;
 }
 
+#if 0
 const uint32_t pd_src_pdo[] = {
 	PDO_FIXED(5000, 1500, PDO_FIXED_FLAGS),
 };
 const int pd_src_pdo_cnt = ARRAY_SIZE(pd_src_pdo);
+#else
+uint32_t pd_src_pdo[PDO_MAX_OBJECTS] = {
+  PDO_FIXED(5000, 1500, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 3000, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
+  PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
+};
+int pd_src_pdo_cnt = PDO_MAX_OBJECTS;
+#endif
 
 const uint32_t pd_snk_pdo[] = {
 	PDO_FIXED(5000, 500, PDO_FIXED_FLAGS),
@@ -215,8 +241,37 @@ void pd_transition_voltage(int port, int idx)
 #endif // if 0
 #if 1 // mike SRC control only
   if (port == 1) {
-//    digitalWrite(ncp_bb_con_en_pin, LOW); 
-    digitalWrite(ncp_bb_con_en_pin, HIGH); 
+//    digitalWrite(ncp_bb_con_en_pin, LOW);
+    uint32_t pdo;
+    uint32_t pdo_ma;
+    uint32_t pdo_mv;
+    uint32_t pdo_mv_source = g_stPMICData.ucCR01DacTarget;
+    /* check current ... */
+    pdo = pd_src_pdo[idx - 1];
+    pdo_ma = (pdo & 0x3ff) * 10;
+    pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
+    CPRINTF("Current requested index: %d %d mV %d mA",idx, pdo_mv, pdo_ma);
+    pdo_mv = pdo_mv / 100;
+    while(pdo_mv != pdo_mv_source) {
+      if (pdo_mv < pdo_mv_source) {
+        pdo_mv_source = pdo_mv_source - _TYPE_C_PMIC_VOLTAGE_OFFSET;
+      }
+      if (pdo_mv > pdo_mv_source) {
+        pdo_mv_source = pdo_mv_source + _TYPE_C_PMIC_VOLTAGE_OFFSET;
+      }
+      g_stPMICData.ucCR01DacTarget = pdo_mv_source;
+      ncp81239_pmic_set_voltage();
+      delay(4);
+    }
+//    g_stPMICData.ucCR01DacTarget = pdo_mv / 100 + _TYPE_C_PMIC_VOLTAGE_OFFSET;
+//    g_stPMICData.ucCR01DacTarget = 15000 / 100;
+//    g_stPMICData.b2CR06Cs1Clind = pdo_ma / 1000;
+//    g_stPMICData.b2CR06Cs1Clind = pdo_ma / 1000;
+//    ncp81239_pmic_set_tatus();
+//    ncp81239_pmic_set_voltage();
+//    delay(50);
+//    ncp81239_pmic_get_tatus();
+//    digitalWrite(ncp_bb_con_en_pin, HIGH);
   }
 #endif
 }

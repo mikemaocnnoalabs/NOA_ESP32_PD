@@ -56,17 +56,17 @@ extern "C" {
 //--------------------------------------------------
 #define _ADDR_01_VBUS                       0x32    // 5V
 #define _ADDR_02_SLEW_RATE                  0x00
-#define _ADDR_03_PWM_FREQ                   0x00
-#define _ADDR_05_OCP_CLIM_POS               0x00
+#define _ADDR_03_PWM_FREQ                   0x02    // 300 kHZ
+#define _ADDR_05_OCP_CLIM_POS               0x11    //
 #define _ADDR_05_OCP_CLIM_NEG               0x00
-#define _ADDR_06_CS1_CLIND                  0x03    // 5A
-#define _ADDR_06_CS2_CLIND                  0x03    // 5A
+#define _ADDR_06_CS1_CLIND                  0x03    // 11
+#define _ADDR_06_CS2_CLIND                  0x03    // 11
 #define _ADDR_09_INT_MASK_CS_CLIND          0x00
 #define _ADDR_09_INT_MASK_OVP               0x00
 #define _ADDR_09_INT_MASK_OCP_P             0x00
 #define _ADDR_09_INT_MASK_PG_INT            0x00
 #define _ADDR_09_INT_MASK_TSD               0x00
-// #define _ADDR_09_INT_MASK_UVP               0x00
+#define _ADDR_09_INT_MASK_UV                0x01
 #define _ADDR_09_INT_MASK_VCHN              0x00
 #define _ADDR_09_INT_MASK_IIC_ACK           0x00
 #define _ADDR_0A_INT_MASK_SHUT_DOWN         0x00
@@ -138,7 +138,7 @@ typedef struct
     uint8_t b1CR09IntMaskOcpP : 1;
     uint8_t b1CR09IntMaskPg : 1;
     uint8_t b1CR09IntMaskTsd : 1;
-    uint8_t b1CR09Reserved : 1;
+    uint8_t b1CR09IntMaskUv : 1;
     uint8_t b1CR09IntMaskVchn : 1;
     uint8_t b1CR09IntMaskI2cAck : 1;
 
@@ -172,6 +172,7 @@ typedef struct
 int     ncp81239_pmic_init();
 int     ncp81239_pmic_get_tatus();
 int     ncp81239_pmic_set_tatus();
+int     ncp81239_pmic_set_voltage();
 #ifdef __cplusplus
 }
 #endif

@@ -25,9 +25,9 @@ StructNCP81239RegisterMap g_stPmicInitialData =
     _ADDR_02_SLEW_RATE,                // Slew rate by define
     0x00,                              // Reserved
 
-    _ADDR_03_PWM_FREQ,                 // by define
-    0x00,                              // PWM freq Reserved
-    0x00,                              // DAC resolution is 10mV
+    _ADDR_03_PWM_FREQ,                 // by define PWM freq
+    0x00,                              // Reserved
+    0x00,                              // DAC resolution(0x01 is 5mV  0x00 is 10mV)
     0x00,                              // Reserved
 
     0x00,                              // PFET is disable
@@ -62,7 +62,7 @@ StructNCP81239RegisterMap g_stPmicInitialData =
     _ADDR_09_INT_MASK_OCP_P,           // OCP_P int flag enable by define
     _ADDR_09_INT_MASK_PG_INT,          // PG int flag enable by define
     _ADDR_09_INT_MASK_TSD,             // TSD int flag enable by define
-    0x00,                              // Reserved
+    _ADDR_09_INT_MASK_UV,              // UV int flag enable by define
     _ADDR_09_INT_MASK_VCHN,            // VCHN int flag enable by define
     _ADDR_09_INT_MASK_IIC_ACK,         // IIC_ACK int flag enable by define
 
@@ -133,6 +133,7 @@ int     ncp81239_pmic_init() {
   DBGLOG(Info, "INIT:Int mask ocp p %d", g_stPMICData.b1CR09IntMaskOcpP);
   DBGLOG(Info, "INIT:Int mask pg %d", g_stPMICData.b1CR09IntMaskPg);
   DBGLOG(Info, "INIT:Int mask tsd %d", g_stPMICData.b1CR09IntMaskTsd);
+  DBGLOG(Info, "INIT:Int mask uv %d", g_stPMICData.b1CR09IntMaskUv);
   DBGLOG(Info, "INIT:Int mask vchn %d", g_stPMICData.b1CR09IntMaskVchn);
   DBGLOG(Info, "INIT:Int mask i2c ack %d", g_stPMICData.b1CR09IntMaskI2cAck);
   DBGLOG(Info, "INIT:Int mask shutdown %d", g_stPMICData.b1CR0AIntMaskShutDown);
@@ -155,7 +156,7 @@ int     ncp81239_pmic_init() {
 int ncp81239_pmic_get_tatus() {
   uint8_t ucResult = 0;
 
-  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
+//  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
 
 /*  DBGLOG(Info, "Pmic:En pol %d", g_stPMICData.b1CR00EnPol);
   DBGLOG(Info, "Pmic:En pup %d", g_stPMICData.b1CR00EnPup);
@@ -189,13 +190,14 @@ int ncp81239_pmic_get_tatus() {
   DBGLOG(Info, "Pmic:Int mask ocp p %d", g_stPMICData.b1CR09IntMaskOcpP);
   DBGLOG(Info, "Pmic:Int mask pg %d", g_stPMICData.b1CR09IntMaskPg);
   DBGLOG(Info, "Pmic:Int mask tsd %d", g_stPMICData.b1CR09IntMaskTsd);
+  DBGLOG(Info, "Pmic:Int mask uv %d", g_stPMICData.b1CR09IntMaskUv);
   DBGLOG(Info, "Pmic:Int mask vchn %d", g_stPMICData.b1CR09IntMaskVchn);
   DBGLOG(Info, "Pmic:Int mask i2c ack %d", g_stPMICData.b1CR09IntMaskI2cAck);
   DBGLOG(Info, "Pmic:Int mask shutdown %d", g_stPMICData.b1CR0AIntMaskShutDown); */
 
-  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData + _NCP81239_CTRL_REG10), 6);
+  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData) + _NCP81239_CTRL_REG10, 6);
 
-/*  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData.ucCR10VfbValue);
+  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData.ucCR10VfbValue);
   DBGLOG(Info, "Pmic:Vin Value %d", g_stPMICData.ucCR11VinValue);
   DBGLOG(Info, "Pmic:CS2 Value %d", g_stPMICData.ucCR12Cs2Value);
   DBGLOG(Info, "Pmic:CS1 Value %d", g_stPMICData.ucCR13Cs1Value);
@@ -206,15 +208,22 @@ int ncp81239_pmic_get_tatus() {
   DBGLOG(Info, "Pmic:Thermal Sensor Flag %d", g_stPMICData.b1CR14IntTsdFlag);
   DBGLOG(Info, "Pmic:Vchn Flag %d", g_stPMICData.b1CR14IntVchnFlag);
   DBGLOG(Info, "Pmic:IIC ACK Flag %d", g_stPMICData.b1CR14IntI2cAckFlag);
-  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag); */
+  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag);
 
   return ucResult;
 }
 
 int ncp81239_pmic_set_tatus() {
   uint8_t ucResult = 0;
-//  g_stPMICData.ucCR01DacTarget = 0x5A;
   NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
+  
+  return ucResult;
+}
+int ncp81239_pmic_set_voltage() {
+  uint8_t ucResult = 0;
+  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData) + _NCP81239_CTRL_REG01, 1);
+//  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData.ucCR01DacTarget), 1);
+//  NOA_PUB_I2C_SetReg(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, g_stPMICData.ucCR01DacTarget);
   
   return ucResult;
 }

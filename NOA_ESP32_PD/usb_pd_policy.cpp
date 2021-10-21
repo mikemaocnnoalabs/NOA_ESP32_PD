@@ -23,6 +23,13 @@ extern int pd_source_cap_max_index;
 
 static int rw_flash_changed = 1;
 
+/* Last received source cap */
+static uint32_t pd_src_caps[CONFIG_USB_PD_PORT_COUNT][PDO_MAX_OBJECTS];
+static uint8_t pd_src_cap_cnt[CONFIG_USB_PD_PORT_COUNT];
+
+/* Cap on the max voltage requested as a sink (in millivolts) */
+static unsigned max_request_mv = PD_MAX_VOLTAGE_MV; /* no cap */
+
 int pd_check_requested_voltage(uint32_t rdo, const int port)
 {
 	int max_ma = rdo & 0x3FF;
@@ -51,7 +58,7 @@ int pd_check_requested_voltage(uint32_t rdo, const int port)
 	if (max_ma > pdo_ma && !(rdo & RDO_CAP_MISMATCH))
 		return EC_ERROR_INVAL; /* too much max current */
 
-	CPRINTF("Requested %d V %d mA (for %d/%d mA)",
+	CPRINTF("Requested %d mV %d mA (for %d/%d mA)",
 		 ((pdo >> 10) & 0x3ff) * 50, (pdo & 0x3ff) * 10,
 		 op_ma * 10, max_ma * 10);
 
@@ -80,12 +87,6 @@ int pd_board_check_request(uint32_t rdo, int pdo_cnt)
 }
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
-/* Last received source cap */
-static uint32_t pd_src_caps[CONFIG_USB_PD_PORT_COUNT][PDO_MAX_OBJECTS];
-static uint8_t pd_src_cap_cnt[CONFIG_USB_PD_PORT_COUNT];
-
-/* Cap on the max voltage requested as a sink (in millivolts) */
-static unsigned max_request_mv = PD_MAX_VOLTAGE_MV; /* no cap */
 
 int pd_find_pdo_index(int port, int max_mv, uint32_t *selected_pdo)
 {
@@ -245,6 +246,13 @@ void pd_process_source_cap(int port, int cnt, uint32_t *src_caps)
 	pd_src_cap_cnt[port] = cnt;
 	for (i = 0; i < cnt; i++)
 		pd_src_caps[port][i] = *src_caps++;
+  if (port == 0) {  // init Source cap with sink input cap
+    for (i = 0; i < cnt; i++) {
+      pd_src_pdo[i] = pd_src_caps[port][i];
+//      CPRINTF("pdo[%d]=%d %d mv: %d ma", i, pd_src_pdo[i], ((pd_src_pdo[i] >> 10) & 0x3ff) * 50, (pd_src_pdo[i] & 0x3ff) * 10);
+    }
+    pd_src_pdo_cnt = pd_src_cap_cnt[port];
+  }
 
 #ifdef CONFIG_CHARGE_MANAGER
 	/* Get max power info that we could request */

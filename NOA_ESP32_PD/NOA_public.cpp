@@ -14,31 +14,31 @@ uint8_t temp_buf[80] = {0};
 
 void NOA_PUB_ESP32DebugInit() {
   // Initialize debugging with timestamp since start (start = 0) 
-  DBGINI(&Serial, ESP32Timestamp::TimestampSinceStart)
+  DBGINI(&Serial, ESP32Timestamp::TimestampNone)
   // Start debugging
   DBGSTA
   // Log an info-message
-  DBGLOG(Info, "Program ExampleESP32Debugging.ino startet.")
+//  DBGLOG(Info, "Program ExampleESP32Debugging.ino startet.")
   // Log an error-message
-  DBGLOG(Error, "This is an error message.")
+//  DBGLOG(Error, "This is an error message.")
   // Log a debug-message, which will not be shown, because actual debug-level is "Info"
-  DBGLOG(Debug, "This is an message with logging level 'Debug' which will not be printed.")
+//  DBGLOG(Debug, "This is an message with logging level 'Debug' which will not be printed.")
   // Change debug-level to "Debug"
   DBGLEV(Debug)
   // The following debug-message will now be shown
-  DBGLOG(Debug, "This is an message with logging level 'Debug' which will be printed.")
+//  DBGLOG(Debug, "This is an message with logging level 'Debug' which will be printed.")
   // Stop debugging
   DBGSTP
   // While debugging is stopped messages will not be shown
-  DBGLOG(Info, "This will not be printed because Debugging is stopped.")
+//  DBGLOG(Info, "This will not be printed because Debugging is stopped.")
   // Activate debugging again
   DBGSTA
-  DBGLOG(Info, "End of Debug LOG setup.")
+//  DBGLOG(Info, "End of Debug LOG setup.")
 }
 
 void NOA_PUB_I2C_Scanner(uint8_t nIndex){
   int nDevices = 0;
-  Serial.println("Scanning...");
+  DBGLOG(Info, "I2C %d Scanning...", nIndex);
   for (byte address = 1; address < 127; ++address) {
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
@@ -53,30 +53,18 @@ void NOA_PUB_I2C_Scanner(uint8_t nIndex){
     }
 
     if (error == 0) {
-      Serial.print("I2C ");
-      Serial.print(nIndex);
-      Serial.print(" bus found device at address 0x");
-      if (address < 16) {
-        Serial.print("0");
-      }
-      Serial.print(address, HEX);
-      Serial.println("  !");
+      DBGLOG(Info, "I2C %d bus found a device at address 0x%02x", nIndex, address);
       ++nDevices;
     } else if (error == 4) {
-      Serial.print("Unknown error at address 0x");
-      if (address < 16) {
-        Serial.print("0");
-      }
-      Serial.println(address, HEX);
+      DBGLOG(Info, "Unknown error at address 0x%02x", address);
     }
   }
 
   if (nDevices == 0) {
-    Serial.print("No I2C devices found in I2C ");
-    Serial.print(nIndex);
-    Serial.println(" bus\n");
+    DBGLOG(Info, "No I2C devices found in I2C %d", nIndex);
   } else {
-    Serial.println("done\n");
+//    Serial.println("done\n");
+    DBGLOG(Info, "done");
   }
 //  delay(5000); // Wait 5 seconds for next scan
 }
@@ -172,7 +160,6 @@ void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
     Serial.println(c, HEX);
   }
   Serial.println();
-  Serial.println();
 }
 
 void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
@@ -230,7 +217,6 @@ void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
     Serial.print(", Value: 0x");
     Serial.println(c, HEX);
   }
-  Serial.println();
   Serial.println();
 }
 

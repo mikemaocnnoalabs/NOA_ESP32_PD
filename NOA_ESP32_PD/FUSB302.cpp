@@ -782,12 +782,12 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		 */
 		rv |= tcpc_xfer(port, 0, 0, buf, len+4, I2C_XFER_STOP);
     if (port == 1) {
-      DBGLOG(Info, "rv %d head TYPE %d CNT %d Buf = ", rv, PD_HEADER_TYPE(*head), PD_HEADER_CNT(*head));
-      for (int i = 0; i < len + 4; i++) {
-        Serial.print(buf[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println(" ");
+//      DBGLOG(Info, "rv %d head TYPE %d CNT %d Buf = ", rv, PD_HEADER_TYPE(*head), PD_HEADER_CNT(*head));
+//      for (int i = 0; i < len + 4; i++) {
+//        Serial.print(buf[i], HEX);
+//        Serial.print(" ");
+//      }
+//      Serial.println(" ");
     }
 	} while (!rv && PACKET_IS_GOOD_CRC(*head) && !fusb302_rx_fifo_is_empty(port));
   

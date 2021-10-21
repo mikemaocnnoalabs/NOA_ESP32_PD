@@ -45,7 +45,7 @@ static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
-static const int debug_level = 1;
+static const int debug_level = 3;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -110,7 +110,7 @@ static const uint8_t vdo_ver[] = {
 // static int port = TASK_ID_TO_PD_PORT(task_get_current());  // mike disable
 #endif
 // static uint32_t payload[7];    // mike disable
-static int timeout = 10*MSEC_US;
+// static int timeout = 10*MSEC_US;  // mike disable
 // static int cc1, cc2; // mike disable
 static int res = 0, incoming_packet = 0;
 static int hard_reset_count = 0;
@@ -423,7 +423,7 @@ static inline void set_state(int port, enum pd_states next_state)
 #endif
 
 	if (debug_level >= 1) {
-		CPRINTF("C%d st%d %s", port, next_state, pd_state_names[next_state]);
+		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
 	} else {
 		CPRINTF("C%d st%d", port, next_state);
 	}
@@ -461,7 +461,7 @@ void pd_transmit_complete(int port, int status)
 static int pd_transmit(int port, enum tcpm_transmit_type type,
 		       uint16_t header, const uint32_t *data)
 {
-	int evt;
+//	int evt;    // mike disable
 
 	/* If comms are disabled, do not transmit, return error */
 	if (!pd_comm_is_enabled(port))
@@ -1034,7 +1034,7 @@ static void pd_update_pdo_flags(int port, uint32_t pdo)
 		 pd_charge_from_device(pd_get_identity_vid(port),
 				       pd_get_identity_pid(port)));
 #else
-	const int charge_whitelisted = 0;
+//	const int charge_whitelisted = 0; // mike disable
 #endif
 #endif
 
@@ -1166,7 +1166,11 @@ static void handle_data_request(int port, uint16_t head,
 #endif
 #endif
 				pd[port].requested_idx = RDO_POS(payload[0]);
-				set_state(port, PD_STATE_SRC_ACCEPTED);
+        if (pd[port].task_state != PD_STATE_SRC_READY) {
+				  set_state(port, PD_STATE_SRC_ACCEPTED);
+        } else {
+          set_state(port, PD_STATE_SRC_DISCONNECTED);
+        }
 				return;
 			}
 		}
@@ -1555,11 +1559,13 @@ static void handle_request(int port, uint16_t head,
 		uint32_t *payload)
 {
 	int cnt = PD_HEADER_CNT(head);
+  int type = PD_HEADER_TYPE(head);
 	int p = 0;
+  CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
 
 	/* dump received packet content (only dump ping at debug level 3) */
 	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) || debug_level >= 3) {
-		CPRINTF("C%d RECV head %04X / cnt %d ", port, head, cnt);
+//		CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
     if (port == 1) {
   		for (p = 0; p < cnt; p++)
 	  		CPRINTF("[%d]%08x ", p, payload[p]);
@@ -2154,6 +2160,7 @@ void pd_init(int port)
 void pd_run_state_machine(int port, int reset)
 {
   int cc1 = 0, cc2 = 0;
+  int timeout = 10*MSEC_US;
   enum pd_cc_states new_cc_state = PD_CC_NONE;
   enum pd_states this_state = PD_STATE_DISABLED;
   int head = 0;
@@ -2541,7 +2548,7 @@ void pd_run_state_machine(int port, int reset)
 			(pd[port].vdm_state == VDM_STATE_BUSY))
 			break;
     if (port == 1) {
-//     CPRINTF("C%d flags %d", port, pd[port].flags);
+//      CPRINTF("C%d flags %d", port, pd[port].flags);
       tcpm_get_cc(port, &cc1, &cc2);
 //      CPRINTF("C%d SRC READY cc1 = %d cc2 = %d", port, cc1, cc2);
     }
@@ -2560,6 +2567,7 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Send get sink cap if haven't received it yet */
 		if (!(pd[port].flags & PD_FLAGS_SNK_CAP_RECVD)) {
+//      CPRINTF("C%d flags is no PD_FLAGS_SNK_CAP_RECVD", port);
 			if (++snk_cap_count <= PD_SNK_CAP_RETRIES) {
 				/* Get sink cap to know if dual-role device */
 				send_control(port, PD_CTRL_GET_SINK_CAP);
@@ -2573,16 +2581,16 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Check power role policy, which may trigger a swap */
 		if (pd[port].flags & PD_FLAGS_CHECK_PR_ROLE) {
-			pd_check_pr_role(port, PD_ROLE_SOURCE,
-						pd[port].flags);
+      CPRINTF("C%d flags is PD_FLAGS_CHECK_PR_ROLE", port);
+			pd_check_pr_role(port, PD_ROLE_SOURCE, pd[port].flags);
 			pd[port].flags &= ~PD_FLAGS_CHECK_PR_ROLE;
 			break;
 		}
 
 		/* Check data role policy, which may trigger a swap */
 		if (pd[port].flags & PD_FLAGS_CHECK_DR_ROLE) {
-			pd_check_dr_role(port, pd[port].data_role,
-						pd[port].flags);
+      CPRINTF("C%d flags is PD_FLAGS_CHECK_DR_ROLE", port);
+			pd_check_dr_role(port, pd[port].data_role, pd[port].flags);
 			pd[port].flags &= ~PD_FLAGS_CHECK_DR_ROLE;
 			break;
 		}
@@ -2590,21 +2598,25 @@ void pd_run_state_machine(int port, int reset)
 		/* Send discovery SVDMs last */
 		if (pd[port].data_role == PD_ROLE_DFP &&
 			(pd[port].flags & PD_FLAGS_CHECK_IDENTITY)) {
+      CPRINTF("C%d flags is PD_FLAGS_CHECK_IDENTITY", port);
 #ifndef CONFIG_USB_PD_SIMPLE_DFP
-			pd_send_vdm(port, USB_SID_PD,
-					CMD_DISCOVER_IDENT, NULL, 0);
+			pd_send_vdm(port, USB_SID_PD, CMD_DISCOVER_IDENT, NULL, 0);
 #endif
 			pd[port].flags &= ~PD_FLAGS_CHECK_IDENTITY;
 			break;
 		}
 
-		if (!(pd[port].flags & PD_FLAGS_PING_ENABLED))
+		if (!(pd[port].flags & PD_FLAGS_PING_ENABLED)) {
+//      CPRINTF("C%d flags is no PD_FLAGS_PING_ENABLED", port);
 			break;
+		}
 
 		/* Verify that the sink is alive */
 		res = send_control(port, PD_CTRL_PING);
-		if (res >= 0)
+		if (res >= 0) {
+			CPRINTF("C%d send PD_CTRL_PING", port);
 			break;
+		}
 
 		/* Ping dropped. Try soft reset. */
 		set_state(port, PD_STATE_SOFT_RESET);
