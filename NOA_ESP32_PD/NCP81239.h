@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#define CONFIG_NCP_PM_PORT_COUNT  3
+
 /* I2C slave address varies by part number */
 /* NCP81239 */
 #define ncp81239_I2C_SLAVE_ADDR 0x74
@@ -57,7 +59,7 @@ extern "C" {
 #define _ADDR_01_VBUS                       0x32    // 5V
 #define _ADDR_02_SLEW_RATE                  0x00
 #define _ADDR_03_PWM_FREQ                   0x02    // 300 kHZ
-#define _ADDR_05_OCP_CLIM_POS               0x11    //
+#define _ADDR_05_OCP_CLIM_POS               0x03    //
 #define _ADDR_05_OCP_CLIM_NEG               0x00
 #define _ADDR_06_CS1_CLIND                  0x03    // 11
 #define _ADDR_06_CS2_CLIND                  0x03    // 11
@@ -145,7 +147,7 @@ typedef struct
     uint8_t b1CR0AIntMaskShutDown : 1;
     uint8_t b7CR0AReserved : 7;
 
-    uint8_t b7CR0BReserved;
+    uint8_t ucCR0BReserved;
     uint8_t ucCR0CReserved;
     uint8_t ucCR0DReserved;
     uint8_t ucCR0EReserved;
@@ -169,10 +171,11 @@ typedef struct
     uint8_t b7CR15Reserved : 7;
 } StructNCP81239RegisterMap;
 
-int     ncp81239_pmic_init();
-int     ncp81239_pmic_get_tatus();
-int     ncp81239_pmic_set_tatus();
-int     ncp81239_pmic_set_voltage();
+int     ncp81239_pmic_init(int port);
+int     ncp81239_pmic_get_tatus(int port);
+int     ncp81239_pmic_set_tatus(int port);
+int     ncp81239_pmic_set_voltage(int port);
+int     ncp81239_pmic_reset(int port);
 #ifdef __cplusplus
 }
 #endif

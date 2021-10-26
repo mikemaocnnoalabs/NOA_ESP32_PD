@@ -6,6 +6,7 @@
 */
 #include <Wire.h>
 
+#include "tcpm_driver.h"
 #include "NCP81239.h"
 #include "NOA_public.h"
 
@@ -96,10 +97,10 @@ StructNCP81239RegisterMap g_stPmicInitialData =
 //****************************************************************************
 // VARIABLE DECLARATIONS
 //****************************************************************************
-StructNCP81239RegisterMap g_stPMICData;
+StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
 
-int     ncp81239_pmic_init() {
-  g_stPMICData = g_stPmicInitialData;
+int     ncp81239_pmic_init(int port) {
+  g_stPMICData[port] = g_stPmicInitialData;
 
 /*  DBGLOG(Info, "INIT:En pol %d", g_stPMICData.b1CR00EnPol);
   DBGLOG(Info, "INITc:En pup %d", g_stPMICData.b1CR00EnPup);
@@ -153,10 +154,12 @@ int     ncp81239_pmic_init() {
   return 0;
 }
 
-int ncp81239_pmic_get_tatus() {
+int ncp81239_pmic_get_tatus(int port) {
   uint8_t ucResult = 0;
-
-//  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+//  NOA_PUB_I2C_ReceiveBytes(port, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
 
 /*  DBGLOG(Info, "Pmic:En pol %d", g_stPMICData.b1CR00EnPol);
   DBGLOG(Info, "Pmic:En pup %d", g_stPMICData.b1CR00EnPup);
@@ -195,35 +198,136 @@ int ncp81239_pmic_get_tatus() {
   DBGLOG(Info, "Pmic:Int mask i2c ack %d", g_stPMICData.b1CR09IntMaskI2cAck);
   DBGLOG(Info, "Pmic:Int mask shutdown %d", g_stPMICData.b1CR0AIntMaskShutDown); */
 
-  NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData) + _NCP81239_CTRL_REG10, 6);
+  switch (port) {
+    case 1: // SRC1 P2
+      NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6); 
+      break;
+    case 2: // SRC2 UP
+      NOA_PUB_I2C_ReceiveBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6); 
+      break;
+    case 3: // SRC3 P3
+      NOA_PUB_I2C_ReceiveBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6);
+      break;
+  }
 
-  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData.ucCR10VfbValue);
-  DBGLOG(Info, "Pmic:Vin Value %d", g_stPMICData.ucCR11VinValue);
-  DBGLOG(Info, "Pmic:CS2 Value %d", g_stPMICData.ucCR12Cs2Value);
-  DBGLOG(Info, "Pmic:CS1 Value %d", g_stPMICData.ucCR13Cs1Value);
-  DBGLOG(Info, "Pmic:Cs Clind Flag %d", g_stPMICData.b1CR14IntCsClindFlag);
-  DBGLOG(Info, "Pmic:VBUS OVP Flag %d", g_stPMICData.b1CR14IntOvpFlag);
-  DBGLOG(Info, "Pmic:OCP_P Flag %d", g_stPMICData.b1CR14IntOcpPFlag);
-  DBGLOG(Info, "Pmic:Power Good Flag %d", g_stPMICData.b1CR14IntPgIntFlag);
-  DBGLOG(Info, "Pmic:Thermal Sensor Flag %d", g_stPMICData.b1CR14IntTsdFlag);
-  DBGLOG(Info, "Pmic:Vchn Flag %d", g_stPMICData.b1CR14IntVchnFlag);
-  DBGLOG(Info, "Pmic:IIC ACK Flag %d", g_stPMICData.b1CR14IntI2cAckFlag);
-  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData.b1CR15IntShutDownFlag);
+  DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData[port].ucCR10VfbValue);
+  DBGLOG(Info, "Pmic:Vin Value %d", g_stPMICData[port].ucCR11VinValue);
+  DBGLOG(Info, "Pmic:CS2 Value %d", g_stPMICData[port].ucCR12Cs2Value);
+  DBGLOG(Info, "Pmic:CS1 Value %d", g_stPMICData[port].ucCR13Cs1Value);
+  DBGLOG(Info, "Pmic:Cs Clind Flag %d", g_stPMICData[port].b1CR14IntCsClindFlag);
+  DBGLOG(Info, "Pmic:VBUS OVP Flag %d", g_stPMICData[port].b1CR14IntOvpFlag);
+  DBGLOG(Info, "Pmic:OCP_P Flag %d", g_stPMICData[port].b1CR14IntOcpPFlag);
+  DBGLOG(Info, "Pmic:Power Good Flag %d", g_stPMICData[port].b1CR14IntPgIntFlag);
+  DBGLOG(Info, "Pmic:Thermal Sensor Flag %d", g_stPMICData[port].b1CR14IntTsdFlag);
+  DBGLOG(Info, "Pmic:Vchn Flag %d", g_stPMICData[port].b1CR14IntVchnFlag);
+  DBGLOG(Info, "Pmic:IIC ACK Flag %d", g_stPMICData[port].b1CR14IntI2cAckFlag);
+  DBGLOG(Info, "Pmic:Shut Down Flag %d", g_stPMICData[port].b1CR15IntShutDownFlag);
 
   return ucResult;
 }
 
-int ncp81239_pmic_set_tatus() {
+int ncp81239_pmic_set_tatus(int port) {
   uint8_t ucResult = 0;
-  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData), 11);
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
+      break;
+    case 2:
+      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
+      break;
+    case 3:
+      NOA_PUB_I2C_SendBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
+      break;
+  }
+
+  return ucResult;
+}
+
+int ncp81239_pmic_set_voltage(int port) {
+  uint8_t ucResult = 0;
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1); 
+      break;
+    case 2:
+      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1); 
+      break;
+    case 3:
+      NOA_PUB_I2C_SendBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+  }
+//  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port].ucCR01DacTarget), 1);
+//  NOA_PUB_I2C_SetReg(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, g_stPMICData[port].ucCR01DacTarget);
   
   return ucResult;
 }
-int ncp81239_pmic_set_voltage() {
+
+int ncp81239_pmic_reset(int port) {
   uint8_t ucResult = 0;
-  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData) + _NCP81239_CTRL_REG01, 1);
-//  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData.ucCR01DacTarget), 1);
-//  NOA_PUB_I2C_SetReg(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, g_stPMICData.ucCR01DacTarget);
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+//  g_stPMICData[port].b1CR00EnPol = g_stPmicInitialData.b1CR00EnPol;
+//  g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
+//  g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
+//  g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
+//  g_stPMICData[port].b4CR00Reserved = g_stPmicInitialData.b4CR00Reserved;
   
+  g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
+  
+//  g_stPMICData[port].b2CR02SlewRate =  g_stPmicInitialData.b2CR02SlewRate;
+//  g_stPMICData[port].b6CR02Reserved = g_stPmicInitialData.b6CR02Reserved;
+  
+//  g_stPMICData[port].b3CR03PwmFreq = g_stPmicInitialData.b3CR03PwmFreq;
+//  g_stPMICData[port].b1CR03Reserved1 = g_stPmicInitialData.b1CR03Reserved1;
+//  g_stPMICData[port].b1CR03DacLsb = g_stPmicInitialData.b1CR03DacLsb;
+//  g_stPMICData[port].b3CR03Reserved2 = g_stPmicInitialData.b3CR03Reserved2;
+  
+//  g_stPMICData[port].b1CR04Pfet = g_stPmicInitialData.b1CR04Pfet;
+//  g_stPMICData[port].b1CR04Cfet = g_stPmicInitialData.b1CR04Cfet;
+//  g_stPMICData[port].b1CR04DeadBatteryEn = g_stPmicInitialData.b1CR04DeadBatteryEn;
+//  g_stPMICData[port].b1CR04Reserved1 = g_stPmicInitialData.b1CR04Reserved1;
+//  g_stPMICData[port].b1CR04Cs1DisCharge = g_stPmicInitialData.b1CR04Cs1DisCharge;
+//  g_stPMICData[port].b1CR04Cs2DisCharge = g_stPmicInitialData.b1CR04Cs2DisCharge;
+//  g_stPMICData[port].b2CR04Reserved2 = g_stPmicInitialData.b2CR04Reserved2;
+  
+  g_stPMICData[port].b2CR05OcpClimPos = g_stPmicInitialData.b2CR05OcpClimPos;
+//  g_stPMICData[port].b2CR05Reserved1 = g_stPmicInitialData.b2CR05Reserved1;
+  g_stPMICData[port].b2CR05OcpClimNeg = g_stPmicInitialData.b2CR05OcpClimNeg;
+//  g_stPMICData[port].b2CR05Reserved2 = g_stPmicInitialData.b2CR05Reserved2;
+  
+  g_stPMICData[port].b2CR06Cs1Clind = g_stPmicInitialData.b2CR06Cs1Clind;
+  g_stPMICData[port].b2CR06Cs2Clind = g_stPmicInitialData.b2CR06Cs2Clind;
+//  g_stPMICData[port].b4CR06Reserved = g_stPmicInitialData.b4CR06Reserved;
+  
+//  g_stPMICData[port].b3CR07LoGmAmpSetting = g_stPmicInitialData.b3CR07LoGmAmpSetting;
+//  g_stPMICData[port].b1CR07GmManual = g_stPmicInitialData.b1CR07GmManual;
+//  g_stPMICData[port].b3CR07HiGmAmpSetting = g_stPmicInitialData.b3CR07HiGmAmpSetting;
+//  g_stPMICData[port].b1CR07GmAmpConfig = g_stPmicInitialData.b1CR07GmAmpConfig;
+  
+//  g_stPMICData[port].b2CR08AmuxTrigger = g_stPmicInitialData.b2CR08AmuxTrigger;
+//  g_stPMICData[port].b3CR08AmuxSel = g_stPmicInitialData.b3CR08AmuxSel;
+//  g_stPMICData[port].b1CR08DisAdc = g_stPmicInitialData.b1CR08DisAdc;
+//  g_stPMICData[port].b2CR08Reserved = g_stPmicInitialData.b2CR08Reserved;
+  
+//  g_stPMICData[port].b1CR09IntMaskCsClind = g_stPmicInitialData.b1CR09IntMaskCsClind;
+//  g_stPMICData[port].b1CR09IntMaskOv = g_stPmicInitialData.b1CR09IntMaskOv;
+//  g_stPMICData[port].b1CR09IntMaskOcpP = g_stPmicInitialData.b1CR09IntMaskOcpP;
+//  g_stPMICData[port].b1CR09IntMaskPg = g_stPmicInitialData.b1CR09IntMaskPg;
+//  g_stPMICData[port].b1CR09IntMaskTsd = g_stPmicInitialData.b1CR09IntMaskTsd;
+//  g_stPMICData[port].b1CR09IntMaskUv = g_stPmicInitialData.b1CR09IntMaskUv;
+//  g_stPMICData[port].b1CR09IntMaskVchn = g_stPmicInitialData.b1CR09IntMaskVchn;
+//  g_stPMICData[port].b1CR09IntMaskI2cAck = g_stPmicInitialData.b1CR09IntMaskI2cAck;
+  
+//  g_stPMICData[port].b1CR0AIntMaskShutDown = g_stPmicInitialData.b1CR0AIntMaskShutDown;
+//  g_stPMICData[port].b7CR0AReserved = g_stPmicInitialData.b7CR0AReserved;
+
   return ucResult;
 }

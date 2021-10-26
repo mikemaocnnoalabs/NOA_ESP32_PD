@@ -26,8 +26,14 @@
 
 extern struct tc_module tc_instance;
 extern uint32_t g_us_timestamp_upper_32bit;
-extern int ncp_bb_con_en_pin;
-extern StructNCP81239RegisterMap g_stPMICData;
+#ifdef NOA_PD_SNACKER
+extern int ncp_bb_con1_en_pin;
+#else
+extern int ncp_bb_con1_en_pin;
+extern int ncp_bb_con3_en_pin;
+#endif
+// extern StructNCP81239RegisterMap g_stPMICData;
+extern StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
 
 uint32_t pd_task_set_event(uint32_t event, int wait_for_reply)
 {
@@ -92,7 +98,47 @@ timestamp_t get_time(void)
 
 void pd_power_supply_reset(int port)
 {
+  CPRINTF("Reset %d port Vbus Power", port);
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return;
+  }
+
+  ncp81239_pmic_reset(port);
+//  ncp81239_pmic_init(port);   // save reset
+//  ncp81239_pmic_set_tatus(port);
+  delay(4);
 	return;
+}
+
+void pd_power_supply_off(int port)
+{
+  CPRINTF("Off %d port Vbus Power", port);
+#ifdef NOA_PD_SNACKER
+  if(port != 1) {  // support 1 port only
+    return;
+  }
+  switch (port) {
+    case 1:
+      digitalWrite(ncp_bb_con1_en_pin, LOW);
+      break;
+  }
+#else
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return;
+  }
+  switch (port) {
+    case 1:
+      digitalWrite(ncp_bb_con1_en_pin, LOW);
+      break;
+    case 2:
+      break;
+    case 3:
+      digitalWrite(ncp_bb_con3_en_pin, LOW);
+      break;
+  }
+#endif
+//    delay(4);
+  return;
 }
 
 int pd_custom_vdm(int port, int cnt, uint32_t *payload,
@@ -196,10 +242,33 @@ int pd_set_power_supply_ready(int port)
 	/* notify host of power info change */
 	pd_send_host_event(PD_EVENT_POWER_CHANGE);
 #endif // if 0
-  if (port == 1) {
-//    digitalWrite(ncp_bb_con_en_pin, LOW); 
-    digitalWrite(ncp_bb_con_en_pin, HIGH); 
+  CPRINTF("Enable %d Port Vbus Power", port);
+#ifdef NOA_PD_SNACKER
+  if(port != 1) {  // support 1 port only
+    return EC_ERROR_UNKNOWN;
   }
+  ncp81239_pmic_set_tatus(port);
+  switch (port) {
+    case 1:
+      digitalWrite(ncp_bb_con1_en_pin, HIGH);
+      break;
+  }
+#else
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return EC_ERROR_UNKNOWN;
+  }
+  ncp81239_pmic_set_tatus(port);
+  switch (port) {
+    case 1:
+      digitalWrite(ncp_bb_con1_en_pin, HIGH);
+      break;
+    case 2:
+      break;
+    case 3:
+      digitalWrite(ncp_bb_con3_en_pin, HIGH);
+      break;
+  }
+#endif
 	return EC_SUCCESS; /* we are ready */
 }
 
@@ -240,29 +309,31 @@ void pd_transition_voltage(int port, int idx)
 	vbus[DUT].ma = vbus[CHG].ma;
 #endif // if 0
 #if 1 // mike SRC control only
-  if (port == 1) {
-//    digitalWrite(ncp_bb_con_en_pin, LOW);
-    uint32_t pdo;
-    uint32_t pdo_ma;
-    uint32_t pdo_mv;
-    uint32_t pdo_mv_source = g_stPMICData.ucCR01DacTarget;
-    /* check current ... */
-    pdo = pd_src_pdo[idx - 1];
-    pdo_ma = (pdo & 0x3ff) * 10;
-    pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
-    CPRINTF("Current requested index: %d %d mV %d mA",idx, pdo_mv, pdo_ma);
-    pdo_mv = pdo_mv / 100;
-    while(pdo_mv != pdo_mv_source) {
-      if (pdo_mv < pdo_mv_source) {
-        pdo_mv_source = pdo_mv_source - _TYPE_C_PMIC_VOLTAGE_OFFSET;
-      }
-      if (pdo_mv > pdo_mv_source) {
-        pdo_mv_source = pdo_mv_source + _TYPE_C_PMIC_VOLTAGE_OFFSET;
-      }
-      g_stPMICData.ucCR01DacTarget = pdo_mv_source;
-      ncp81239_pmic_set_voltage();
-      delay(4);
+  CPRINTF("Transition %d Port voltage", port);
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return;
+  }
+  uint32_t pdo;
+  uint32_t pdo_ma;
+  uint32_t pdo_mv;
+  uint32_t pdo_mv_source = g_stPMICData[port].ucCR01DacTarget;
+  /* check current ... */
+  pdo = pd_src_pdo[idx - 1];
+  pdo_ma = (pdo & 0x3ff) * 10;
+  pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
+  CPRINTF("Port %d Current requested index: %d %d mV %d mA", port, idx, pdo_mv, pdo_ma);
+  pdo_mv = pdo_mv / 100;
+  while(pdo_mv != pdo_mv_source) {
+    if (pdo_mv < pdo_mv_source) {
+      pdo_mv_source = pdo_mv_source - _TYPE_C_PMIC_VOLTAGE_OFFSET;
     }
+    if (pdo_mv > pdo_mv_source) {
+      pdo_mv_source = pdo_mv_source + _TYPE_C_PMIC_VOLTAGE_OFFSET;
+    }
+    g_stPMICData[port].ucCR01DacTarget = pdo_mv_source;
+    ncp81239_pmic_set_voltage(port);
+    delay(4);
+  }
 //    g_stPMICData.ucCR01DacTarget = pdo_mv / 100 + _TYPE_C_PMIC_VOLTAGE_OFFSET;
 //    g_stPMICData.ucCR01DacTarget = 15000 / 100;
 //    g_stPMICData.b2CR06Cs1Clind = pdo_ma / 1000;
@@ -272,7 +343,6 @@ void pd_transition_voltage(int port, int idx)
 //    delay(50);
 //    ncp81239_pmic_get_tatus();
 //    digitalWrite(ncp_bb_con_en_pin, HIGH);
-  }
 #endif
 }
 

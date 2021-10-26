@@ -760,9 +760,9 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
     memset(buf, '\0', sizeof(buf));
     rv |= tcpc_xfer(port, 0, 0, buf, 3, I2C_XFER_STOP);
     if (port == 1) {
-      DBGLOG(Info, "p%d Buf[0] = 0x%02X", port, buf[0]);
-      DBGLOG(Info, "p%d Buf[1] = 0x%02X", port, buf[1]);
-      DBGLOG(Info, "p%d Buf[2] = 0x%02X", port, buf[2]);
+//      DBGLOG(Info, "p%d Buf[0] = 0x%02X", port, buf[0]);
+//      DBGLOG(Info, "p%d Buf[1] = 0x%02X", port, buf[1]);
+//      DBGLOG(Info, "p%d Buf[2] = 0x%02X", port, buf[2]);
     }
 
 		/* Grab the header */
@@ -913,7 +913,7 @@ void fusb302_tcpc_alert(int port)
 
   if (port == 0) {
     if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
-//      DBGLOG(Info, "interrupt %d interrupta %d interruptb %d", interrupt, interrupta, interruptb);
+      DBGLOG(Info, "p%d interrupt %d interrupta %d interruptb %d", port, interrupt, interrupta, interruptb);
     }
   } else {
     if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
@@ -959,9 +959,11 @@ void fusb302_tcpc_alert(int port)
     if (interrupta & TCPC_REG_INTERRUPTA_HARDRESET) {
       /* hard reset has been received */
       /* bring FUSB302 out of reset */
-      fusb302_pd_reset(port);
-      pd_execute_hard_reset(port);
-      //task_wake(PD_PORT_TO_TASK_ID(port));
+      if (port == 0) {    // unreset when PD is source, debug
+        fusb302_pd_reset(port);
+        pd_execute_hard_reset(port);
+        // task_wake(PD_PORT_TO_TASK_ID(port));
+      }
     }
 
     if (interruptb & TCPC_REG_INTERRUPTB_GCRCSENT) {

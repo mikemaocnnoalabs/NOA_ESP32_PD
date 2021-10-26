@@ -2,28 +2,28 @@
 
 #include <Esp.h>
 
-#include "tcpm_driver.h"
+// #include "tcpm_driver.h"
 #include "usb_pd.h"
 #include "NCP81239.h"
 
 #include "NOA_TimeDefs.h"
 #include "NOA_public.h"
 
-#define NOA_ESP32_PD_VERSION "0.0.0.1"
+#ifdef NOA_PD_SNACKER
+#define NOA_ESP32_PD_VERSION "0.0.0.2"
+#else
+#define NOA_ESP32_PD_VERSION "0.1.0.2"
+#endif
 
-const int usb_pd_snk_int_pin = 32;  // init pin for PD snk
-const int usb_pd_src_int_pin = 23;  // init pin for PD src
-const int ncp_bb_con_int_pin = 25;  // init pin for ncp81239
-int ncp_bb_con_en_pin = 12;  // enable pin for ncp81239
+#ifdef NOA_PD_SNACKER
+const int usb_pd_snk_int_pin = 32;    // init pin for PD snk
+const int usb_pd_snk_sel_pin = 33;    // sel pin for PD snk
 
-const int debug_led_pin  = 30;
-const int pushbutton_pin = 0;
-int pushbutton_last_state, pushbutton_current_state, pushbutton_last_time, pushbutton_current_time;
-int debug_led_current_state = 0;
-int pd_source_cap_current_index = 0, pd_source_cap_max_index = 0;
+const int usb_pd_src1_int_pin = 23;   // init pin for PD src
+const int usb_pd_src1_sel_pin = 14;   // sel pin for PD src
 
-static int pd_sink_port_ready = 0;
-static int pd_source_port_ready = 0;
+const int ncp_bb_con1_int_pin = 25;   // init pin for ncp81239
+int ncp_bb_con1_en_pin = 12;          // enable pin for ncp81239
 
 // USB-C Specific - TCPM start 1
 const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
@@ -34,6 +34,42 @@ const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
 
 const uint8_t PD_ADDR = 0x22;
 const uint8_t PM_ADDR = 0x74;
+#else
+const int usb_pd_snk_int_pin = 38;  // init pin for PD snk(P1)
+const int usb_pd_snk_sel_pin = 14;  // sel pin for PD snk(P1)
+
+const int usb_pd_src1_int_pin = 34;  // init pin for PD src_1(P2)
+const int usb_pd_src1_sel_pin = 19;  // sel pin for PD src_1(P2)
+const int ncp_bb_con1_int_pin = 35;  // init pin for src_1 ncp81239(P2)
+int ncp_bb_con1_en_pin = 2;          // enable pin for src_1 ncp81239(P2)
+
+const int usb_pd_src3_int_pin = 36;  // init pin for PD src_1(P3)
+const int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_1(P3)
+const int ncp_bb_con3_int_pin = 37;  // init pin for src_1 ncp81239(P3)
+int ncp_bb_con3_en_pin = 25;         // enable pin for src_1 ncp81239(P3)
+
+const uint8_t P1D_ADDR = 0x23;
+
+// USB-C Specific - TCPM start 1
+const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
+  {0, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv_SNK},
+  {1, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
+  {2, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
+  {3, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv_SRC},
+};
+
+const uint8_t P2D_ADDR = 0x22;
+const uint8_t P2M_ADDR = 0x74;
+
+const uint8_t PUPD_ADDR = 0x22;
+const uint8_t PUPM_ADDR = 0x74;
+
+const uint8_t P3D_ADDR = 0x23;
+const uint8_t P3M_ADDR = 0x75;
+#endif
+
+int pd_source_cap_current_index = 0, pd_source_cap_max_index = 0;
+static int pd_sink_port_ready = 0;
 
 // This banner is checked the memmory of MCU platform
 //const char NOA_Banner[] = {0x7c, 0x20, 0x5c, 0x20, 0x7c, 0x20, 0x7c, 0x20, 0x2f, 0x20, 0x5f, 0x5f, 0x20, 0x5c, 0x20, 0x20, 0x20, 0x20, 0x2f, 0x5c, 0x20, 0x20, 0x20, 0x20, 0x0d, 0x0a,
@@ -61,7 +97,7 @@ void setup() {
   Serial.print(" ");
   Serial.print(__TIME__);
   Serial.println();
-  Serial.print(NOA_Banner);
+//  Serial.print(NOA_Banner);
 //  char building_time[17] = {0};
 //  sprintf(building_time, "%04d%02d%02d%02d%02d%02d", BUILD_DATE_YEAR_INT,BUILD_DATE_MONTH_INT,BUILD_DATE_DAY_INT,BUILD_TIME_HOURS_INT,BUILD_TIME_MINUTES_INT,BUILD_TIME_SECONDS_INT);
 //  Serial.println(building_time);
@@ -83,104 +119,133 @@ void setup() {
   Serial.printf(" ESP Device ID %s\r\n", deviceid);
   Serial.println("==========================================");
 //  Serial.println();
-    
-  pinMode(usb_pd_snk_int_pin, INPUT_PULLUP);
-  pinMode(usb_pd_src_int_pin, INPUT_PULLUP);
-  
-  pinMode(ncp_bb_con_int_pin, INPUT_PULLUP);
-  pinMode(ncp_bb_con_en_pin, OUTPUT);
-  digitalWrite(ncp_bb_con_en_pin, LOW);
-  
-  pinMode(debug_led_pin, OUTPUT);
-  pinMode(pushbutton_pin, INPUT_PULLUP);
-  pushbutton_last_state = 1;
-  pushbutton_last_time = 0;
-  digitalWrite(debug_led_pin, LOW);
-  
-//  Wire.begin();
+
+  pinMode(usb_pd_snk_int_pin, INPUT_PULLUP);  // snk
+
+  pinMode(usb_pd_src1_int_pin, INPUT_PULLUP);  // src1
+  pinMode(ncp_bb_con1_int_pin, INPUT_PULLUP);
+  pinMode(ncp_bb_con1_en_pin, OUTPUT);
+  digitalWrite(ncp_bb_con1_en_pin, LOW);
+
+  pinMode(usb_pd_snk_sel_pin, OUTPUT);  // SEL for SNK
+  digitalWrite(usb_pd_snk_sel_pin, HIGH);
+
+  pinMode(usb_pd_src1_sel_pin, OUTPUT);    // SEL for SRC 1
+  digitalWrite(usb_pd_src1_sel_pin, HIGH);
+
+#ifdef NOA_PD_SNACKER
   Wire.begin(26,27);
   Wire.setClock(400000);
-//  Wire.setClock(1000000);
 
   Wire1.begin(21,22);
-//  Wire1.begin(26,27);
   Wire1.setClock(400000);
 
   NOA_PUB_I2C_Scanner(0);
   NOA_PUB_I2C_PD_RreadAllRegs(0, PD_ADDR);
 //  NOA_PUB_I2C_PD_Testing(0, PD_ADDR);
-//  delay(1000);
 
   NOA_PUB_I2C_Scanner(1);
   NOA_PUB_I2C_PD_RreadAllRegs(1, PD_ADDR);
   NOA_PUB_I2C_PM_RreadAllRegs(1, PM_ADDR);
   
-//  tcpm_init(0);   // init some setting to 0
-//  delay(50);
   pd_init(0); // init pd snk
   delay(50);
 
-//  tcpm_init(1);   // init some setting to 0
-//  delay(50);
   pd_init(1); // init pd src
   delay(50);
-  ncp81239_pmic_init();
-  ncp81239_pmic_set_tatus();
-//  ncp81239_pmic_get_tatus();
+
+  ncp81239_pmic_init(1);
+  ncp81239_pmic_set_tatus(1);
+#else  
+  pinMode(usb_pd_src3_int_pin, INPUT_PULLUP);  // SRC 3
+  pinMode(ncp_bb_con3_int_pin, INPUT_PULLUP);
+  pinMode(ncp_bb_con3_en_pin, OUTPUT);
+  digitalWrite(ncp_bb_con3_en_pin, LOW);
+
+  pinMode(usb_pd_src3_sel_pin, OUTPUT); // SEL for SRC 3
+  digitalWrite(usb_pd_src3_sel_pin, HIGH);
+  
+  Wire.begin(23,18);
+  Wire.setClock(400000);
+
+  Wire1.begin(21,22);
+  Wire1.setClock(400000);
+
+  NOA_PUB_I2C_Scanner(0);
+  NOA_PUB_I2C_PD_RreadAllRegs(0, P1D_ADDR);
+//  NOA_PUB_I2C_PD_Testing(0, PD_ADDR);
+//  delay(1000);
+  NOA_PUB_I2C_PD_RreadAllRegs(0, PUPD_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(0, PUPM_ADDR);
+
+  NOA_PUB_I2C_Scanner(1);
+  NOA_PUB_I2C_PD_RreadAllRegs(1, P2D_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(1, P2M_ADDR);
+  NOA_PUB_I2C_PD_RreadAllRegs(1, P3D_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(1, P3M_ADDR);
+
+  pd_init(0); // init pd snk
+  delay(50);
+
+  pd_init(1); // init pd src 1
+  delay(50);
+
+  ncp81239_pmic_init(1);
+  ncp81239_pmic_set_tatus(1);
+  
+  pd_init(3); // init pd src 3
+  delay(50);
+
+  ncp81239_pmic_init(3);
+  ncp81239_pmic_set_tatus(3);
+#endif
 }
 
 void loop() {
+#ifdef NOA_PD_SNACKER
   int reset = 0;
-  pushbutton_current_state = digitalRead(pushbutton_pin);
-  pushbutton_current_time = millis();
-  if ((pushbutton_current_state == 0) && (pushbutton_last_state == 1) && ((pushbutton_current_time - pushbutton_last_time) < 100)) {
-    if (debug_led_current_state) {
-//      digitalWrite(debug_led_pin, LOW);
-      DBGLOG(Info, "LED LOW");
-      debug_led_current_state = 0;
-    } else {
-//      digitalWrite(debug_led_pin, HIGH);
-      DBGLOG(Info, "LED HIGH");
-      debug_led_current_state = 1;
-    }
-    if (pd_source_cap_current_index < pd_source_cap_max_index) {
-      pd_source_cap_current_index++;
-    } else {
-      pd_source_cap_current_index = 0;
-    }
-    //pd[0].task_state = PD_STATE_SOFT_RESET);
-    reset = 1;
-    pd_sink_port_ready = 0;
-  }
-  pushbutton_last_state = pushbutton_current_state;
-  pushbutton_last_time = pushbutton_current_time;
-  
+ 
   if (LOW == digitalRead(usb_pd_snk_int_pin)) {
     tcpc_alert(0);
 //    DBGLOG(Info, "PD init pin LOW");
-  } else {
-//    DBGLOG(Info, "PD init pin HIGH");
-  }  
+  } 
   pd_run_state_machine(0, reset);
  
-  if (LOW == digitalRead(usb_pd_src_int_pin)) {
-    tcpc_alert(1);
-    DBGLOG(Info, "PD init pin LOW");
-  }
-
   if (pd_sink_port_ready == 1) {
+    if (LOW == digitalRead(usb_pd_src1_int_pin)) {
+      tcpc_alert(1);
+//    DBGLOG(Info, "PD init pin LOW");
+    }
     pd_run_state_machine(1, 0);
   }
 
-//  if (pd_sink_port_ready == 1) {
-//    if (LOW == digitalRead(ncp_bb_con_int_pin)) {
-//      DBGLOG(Info, "ncp init pin LOW");
-//    } 
-//  }
   // For some reason, a delay of 4 ms seems to be best
   // My guess is that spamming the I2C bus too fast causes problems
-//  delay(2);
-  delayMicroseconds(100);
+  delay(1);
+//  delayMicroseconds(100);
+#else
+  int reset = 0;
+  if (LOW == digitalRead(usb_pd_snk_int_pin)) {
+    tcpc_alert(0);
+//    DBGLOG(Info, "PD SNK init pin LOW");
+  }  
+  pd_run_state_machine(0, reset);
+ 
+  if (pd_sink_port_ready == 1) {
+    if (LOW == digitalRead(usb_pd_src1_int_pin)) {
+      tcpc_alert(1);
+      DBGLOG(Info, "PD SRC 1 init pin LOW");
+    }
+    pd_run_state_machine(1, 0);
+    
+    if (LOW == digitalRead(usb_pd_src3_int_pin)) {
+      tcpc_alert(3);
+      DBGLOG(Info, "PD SRC 3 init pin LOW");
+    }
+    pd_run_state_machine(3, 0);
+  }
+  delay(1);
+#endif
 }
 
 void pd_process_source_cap_callback(int port, int cnt, uint32_t *src_caps)
