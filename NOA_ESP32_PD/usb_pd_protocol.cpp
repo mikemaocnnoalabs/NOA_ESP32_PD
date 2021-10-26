@@ -112,7 +112,7 @@ static const uint8_t vdo_ver[] = {
 // static uint32_t payload[7];    // mike disable
 // static int timeout = 10*MSEC_US;  // mike disable
 // static int cc1, cc2; // mike disable
-static int res = 0, incoming_packet = 0;
+// static int res = 0, incoming_packet = 0; // mike disable
 static int hard_reset_count = 0;
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 static uint64_t next_role_swap = PD_T_DRP_SNK;
@@ -1296,8 +1296,8 @@ static void handle_ctrl_request(int port, uint16_t head,
 {
 	int type = PD_HEADER_TYPE(head);
   int cnt = PD_HEADER_CNT(head);
-  CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
-	int res;
+//  CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
+	int res = -1;
 
 	switch (type) {
 	case PD_CTRL_GOOD_CRC:
@@ -2072,6 +2072,7 @@ static int pd_restart_tcpc(int port)
 void pd_init(int port)
 {
   enum pd_states this_state = PD_STATE_DISABLED;
+  int res = 0;
 #ifdef CONFIG_COMMON_RUNTIME
 	pd_init_tasks();
 #endif
@@ -2159,6 +2160,7 @@ void pd_init(int port)
 
 void pd_run_state_machine(int port, int reset)
 {
+  int res = 0, incoming_packet = 0;
   int cc1 = 0, cc2 = 0;
   int timeout = 10*MSEC_US;
   enum pd_cc_states new_cc_state = PD_CC_NONE;
@@ -2252,10 +2254,12 @@ void pd_run_state_machine(int port, int reset)
 #endif
 
 	/* process any potential incoming message */
-	incoming_packet = evt & PD_EVENT_RX;
+//	incoming_packet = evt & PD_EVENT_RX;
 	//if (incoming_packet) {
-		if (!tcpm_get_message(port, payload, &head))
-			handle_request(port, head, payload);
+		if (!tcpm_get_message(port, payload, &head)) {
+      handle_request(port, head, payload);
+      incoming_packet = evt & PD_EVENT_RX;
+		}
 	//}
 
 	if (pd[port].req_suspend_state)
@@ -2287,19 +2291,20 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
 #endif
+//    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) || (cc1 == TYPEC_CC_VOLT_RA && cc2 == TYPEC_CC_VOLT_RA)) {
+    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN)) {
+      pd_power_supply_off(port);
+    }
 		/* Vnc monitoring */
-		if ((cc1 == TYPEC_CC_VOLT_RD ||
-			    cc2 == TYPEC_CC_VOLT_RD) ||
-			(cc1 == TYPEC_CC_VOLT_RA &&
-			    cc2 == TYPEC_CC_VOLT_RA)) {
+		if ((cc1 == TYPEC_CC_VOLT_RD || cc2 == TYPEC_CC_VOLT_RD) ||
+			(cc1 == TYPEC_CC_VOLT_RA && cc2 == TYPEC_CC_VOLT_RA)) {
 #ifdef CONFIG_USBC_BACKWARDS_COMPATIBLE_DFP
 			/* Enable VBUS */
 			if (pd_set_power_supply_ready(port))
 				break;
 #endif
 			pd[port].cc_state = PD_CC_NONE;
-			set_state(port,
-				PD_STATE_SRC_DISCONNECTED_DEBOUNCE);
+			set_state(port, PD_STATE_SRC_DISCONNECTED_DEBOUNCE);
 		}
 #if defined(CONFIG_USB_PD_DUAL_ROLE)
 		/*
@@ -2331,16 +2336,13 @@ void pd_run_state_machine(int port, int reset)
 		timeout = 20*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
 //    CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d", port, cc1, cc2);
-		if (cc1 == TYPEC_CC_VOLT_RD &&
-			cc2 == TYPEC_CC_VOLT_RD) {
+		if (cc1 == TYPEC_CC_VOLT_RD && cc2 == TYPEC_CC_VOLT_RD) {
 			/* Debug accessory */
 			new_cc_state = PD_CC_DEBUG_ACC;
-		} else if (cc1 == TYPEC_CC_VOLT_RD ||
-				cc2 == TYPEC_CC_VOLT_RD) {
+		} else if (cc1 == TYPEC_CC_VOLT_RD || cc2 == TYPEC_CC_VOLT_RD) {
 			/* UFP attached */
 			new_cc_state = PD_CC_UFP_ATTACHED;
-		} else if (cc1 == TYPEC_CC_VOLT_RA &&
-				cc2 == TYPEC_CC_VOLT_RA) {
+		} else if (cc1 == TYPEC_CC_VOLT_RA && cc2 == TYPEC_CC_VOLT_RA) {
 			/* Audio accessory */
 			new_cc_state = PD_CC_AUDIO_ACC;
 		} else {
@@ -2353,20 +2355,17 @@ void pd_run_state_machine(int port, int reset)
 		if (!(pd[port].flags & PD_FLAGS_TRY_SRC)) {
 			/* Debounce the cc state */
 			if (new_cc_state != pd[port].cc_state) {
-				pd[port].cc_debounce = get_time().val +
-					PD_T_CC_DEBOUNCE;
+				pd[port].cc_debounce = get_time().val + PD_T_CC_DEBOUNCE;
 				pd[port].cc_state = new_cc_state;
 				break;
-			} else if (get_time().val <
-					pd[port].cc_debounce) {
+			} else if (get_time().val < pd[port].cc_debounce) {
 				break;
 			}
 		}
 
 		/* Debounce complete */
 		/* UFP is attached */
-		if (new_cc_state == PD_CC_UFP_ATTACHED ||
-			new_cc_state == PD_CC_DEBUG_ACC) {
+		if (new_cc_state == PD_CC_UFP_ATTACHED || new_cc_state == PD_CC_DEBUG_ACC) {
       CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d new_cc_state = %d", port, cc1, cc2, new_cc_state);
 			pd[port].polarity = (cc1 != TYPEC_CC_VOLT_RD);
       CPRINTF("C%d SRC DISCONNECTED DEBOUNCE polarity = %d", port, pd[port].polarity);
@@ -2382,9 +2381,7 @@ void pd_run_state_machine(int port, int reset)
 			/* Enable VBUS */
 			if (pd_set_power_supply_ready(port)) {
 #ifdef CONFIG_USBC_SS_MUX
-				usb_mux_set(port, TYPEC_MUX_NONE,
-						USB_SWITCH_DISCONNECT,
-						pd[port].polarity);
+				usb_mux_set(port, TYPEC_MUX_NONE, USB_SWITCH_DISCONNECT, pd[port].polarity);
 #endif
 				break;
 			}
@@ -2450,14 +2447,9 @@ void pd_run_state_machine(int port, int reset)
 					* from debounce state since vbus is
 					* on during debounce.
 					*/
-				get_time().val +
-				PD_POWER_SUPPLY_TURN_ON_DELAY -
-					(pd[port].last_state ==
-					PD_STATE_SRC_DISCONNECTED_DEBOUNCE
-					? PD_T_CC_DEBOUNCE : 0),
+				get_time().val + PD_POWER_SUPPLY_TURN_ON_DELAY - (pd[port].last_state == PD_STATE_SRC_DISCONNECTED_DEBOUNCE ? PD_T_CC_DEBOUNCE : 0),
 #else
-				get_time().val +
-				PD_POWER_SUPPLY_TURN_ON_DELAY,
+				get_time().val + PD_POWER_SUPPLY_TURN_ON_DELAY,
 #endif
 				PD_STATE_SRC_DISCOVERY);
 		}
@@ -2470,12 +2462,8 @@ void pd_run_state_machine(int port, int reset)
 				*/
 			if (pd[port].flags & PD_FLAGS_PREVIOUS_PD_CONN)
 				set_state_timeout(port,
-					get_time().val +
-					PD_T_NO_RESPONSE,
-					hard_reset_count <
-						PD_HARD_RESET_COUNT ?
-						PD_STATE_HARD_RESET_SEND :
-						PD_STATE_SRC_DISCONNECTED);
+					get_time().val + PD_T_NO_RESPONSE,
+					hard_reset_count < PD_HARD_RESET_COUNT ? PD_STATE_HARD_RESET_SEND : PD_STATE_SRC_DISCONNECTED);
 		}
 
 		/* Send source cap some minimum number of times */
@@ -2566,10 +2554,10 @@ void pd_run_state_machine(int port, int reset)
 		}
 
 		/* Send get sink cap if haven't received it yet */
-		if (!(pd[port].flags & PD_FLAGS_SNK_CAP_RECVD)) {
+		if (!(pd[port].flags & PD_FLAGS_SNK_CAP_RECVD) && !(port != 0)) {  // disable ask SNK cap in SRC mode
 //      CPRINTF("C%d flags is no PD_FLAGS_SNK_CAP_RECVD", port);
 			if (++snk_cap_count <= PD_SNK_CAP_RETRIES) {
-				/* Get sink cap to know if dual-role device */
+				// Get sink cap to know if dual-role device
 				send_control(port, PD_CTRL_GET_SINK_CAP);
 				set_state(port, PD_STATE_SRC_GET_SINK_CAP);
 				break;
@@ -3425,6 +3413,7 @@ void pd_run_state_machine(int port, int reset)
 	if (pd[port].power_role == PD_ROLE_SOURCE) {
 		/* Source: detect disconnect by monitoring CC */
 		tcpm_get_cc(port, &cc1, &cc2);
+//    CPRINTF("C%d SRC cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
 		if (pd[port].polarity)
 			cc1 = cc2;
 		if (cc1 == TYPEC_CC_VOLT_OPEN) {
