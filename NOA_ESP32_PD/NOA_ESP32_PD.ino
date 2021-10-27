@@ -43,12 +43,15 @@ const int usb_pd_src1_sel_pin = 19;  // sel pin for PD src_1(P2)
 const int ncp_bb_con1_int_pin = 35;  // init pin for src_1 ncp81239(P2)
 int ncp_bb_con1_en_pin = 2;          // enable pin for src_1 ncp81239(P2)
 
-const int usb_pd_src3_int_pin = 36;  // init pin for PD src_1(P3)
-const int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_1(P3)
-const int ncp_bb_con3_int_pin = 37;  // init pin for src_1 ncp81239(P3)
-int ncp_bb_con3_en_pin = 25;         // enable pin for src_1 ncp81239(P3)
+const int usb_pd_src3_int_pin = 36;  // init pin for PD src_3(P3)
+const int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_3(P3)
+const int ncp_bb_con3_int_pin = 37;  // init pin for src_3 ncp81239(P3)
+int ncp_bb_con3_en_pin = 25;         // enable pin for src_3 ncp81239(P3)
 
-const uint8_t P1D_ADDR = 0x23;
+const int usb_pd_src2_int_pin = 39;  // init pin for PD src_2(P0)
+const int usb_pd_src2_sel_pin = 27;  // sel pin for PD src_2(P0)
+const int ncp_bb_con2_int_pin = 13;  // init pin for src_2 ncp81239(P0)
+int ncp_bb_con2_en_pin = 4;          // enable pin for src_2 ncp81239(P0)
 
 // USB-C Specific - TCPM start 1
 const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
@@ -57,6 +60,8 @@ const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
   {2, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
   {3, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv_SRC},
 };
+
+const uint8_t P1D_ADDR = 0x23;
 
 const uint8_t P2D_ADDR = 0x22;
 const uint8_t P2M_ADDR = 0x74;
@@ -104,7 +109,11 @@ void setup() {
 
   NOA_PUB_ESP32DebugInit();
   Serial.println("==========================================");
-  Serial.printf(" NOA PD Firmware %s\r\n", NOA_ESP32_PD_VERSION);
+#ifdef NOA_PD_SNACKER
+  Serial.printf(" NOA PD SNACKER Firmware %s\r\n", NOA_ESP32_PD_VERSION);
+#else
+  Serial.printf(" NOA PD STATION Firmware %s\r\n", NOA_ESP32_PD_VERSION);
+#endif
   Serial.printf(" Building Time %04d%02d%02d%02d%02d%02d\r\n", BUILD_DATE_YEAR_INT,BUILD_DATE_MONTH_INT,BUILD_DATE_DAY_INT,BUILD_TIME_HOURS_INT,BUILD_TIME_MINUTES_INT,BUILD_TIME_SECONDS_INT);
   Serial.printf(" ESP Chip Model %s Revision %d\r\n", ESP.getChipModel(), ESP.getChipRevision());
   Serial.printf(" ESP Chip Cores %d CPUFrea %lu MHz\r\n", ESP.getChipCores(), (unsigned long)ESP.getCpuFreqMHz());
@@ -164,6 +173,14 @@ void setup() {
 
   pinMode(usb_pd_src3_sel_pin, OUTPUT); // SEL for SRC 3
   digitalWrite(usb_pd_src3_sel_pin, HIGH);
+
+  pinMode(usb_pd_src2_int_pin, INPUT_PULLUP);  // SRC 2
+  pinMode(ncp_bb_con2_int_pin, INPUT_PULLUP);
+  pinMode(ncp_bb_con2_en_pin, OUTPUT);
+  digitalWrite(ncp_bb_con2_en_pin, LOW);
+
+  pinMode(usb_pd_src2_sel_pin, OUTPUT); // SEL for SRC 2
+  digitalWrite(usb_pd_src2_sel_pin, HIGH);
   
   Wire.begin(23,18);
   Wire.setClock(400000);
@@ -192,6 +209,12 @@ void setup() {
 
   ncp81239_pmic_init(1);
   ncp81239_pmic_set_tatus(1);
+
+  pd_init(2); // init pd src 2
+  delay(50);
+
+  ncp81239_pmic_init(2);
+  ncp81239_pmic_set_tatus(2);
   
   pd_init(3); // init pd src 3
   delay(50);
@@ -234,13 +257,22 @@ void loop() {
   if (pd_sink_port_ready == 1) {
     if (LOW == digitalRead(usb_pd_src1_int_pin)) {
       tcpc_alert(1);
-      DBGLOG(Info, "PD SRC 1 init pin LOW");
+//      DBGLOG(Info, "PD SRC 1 init pin LOW");
+//      surrent version station hardware
+//      has problem, int port will always report low
+//      and voltage without connection is about 3.4 V, not zero
     }
     pd_run_state_machine(1, 0);
+
+    if (LOW == digitalRead(usb_pd_src2_int_pin)) {
+      tcpc_alert(2);
+//      DBGLOG(Info, "PD SRC 2 init pin LOW");
+    }
+    pd_run_state_machine(2, 0);
     
     if (LOW == digitalRead(usb_pd_src3_int_pin)) {
       tcpc_alert(3);
-      DBGLOG(Info, "PD SRC 3 init pin LOW");
+//      DBGLOG(Info, "PD SRC 3 init pin LOW");
     }
     pd_run_state_machine(3, 0);
   }

@@ -19,7 +19,7 @@ extern "C" {
 #include "tcpm.h"
 #include "FUSB302.h"
 
-#define NOA_PD_SNACKER
+// #define NOA_PD_SNACKER
 #ifndef NOA_PD_SNACKER
 #define NOA_PD_STATION
 #endif

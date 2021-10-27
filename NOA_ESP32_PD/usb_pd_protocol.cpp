@@ -2275,7 +2275,7 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SRC_DISCONNECTED:
 		timeout = 10*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
-    CPRINTF("C%d SRC DISCONNECTED cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
+//    CPRINTF("C%d SRC DISCONNECTED cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
 #ifdef CONFIG_USB_PD_DUAL_ROLE_AUTO_TOGGLE
 		/*
 			* Attempt TCPC auto DRP toggle if it is
@@ -2292,7 +2292,8 @@ void pd_run_state_machine(int port, int reset)
 		}
 #endif
 //    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) || (cc1 == TYPEC_CC_VOLT_RA && cc2 == TYPEC_CC_VOLT_RA)) {
-    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN)) {
+    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) && (pd[port].last_state != pd[port].task_state)) {
+//    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN)) {
       pd_power_supply_off(port);
     }
 		/* Vnc monitoring */
@@ -2336,6 +2337,7 @@ void pd_run_state_machine(int port, int reset)
 		timeout = 20*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
 //    CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d", port, cc1, cc2);
+    CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
 		if (cc1 == TYPEC_CC_VOLT_RD && cc2 == TYPEC_CC_VOLT_RD) {
 			/* Debug accessory */
 			new_cc_state = PD_CC_DEBUG_ACC;
