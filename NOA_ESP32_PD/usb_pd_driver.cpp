@@ -30,6 +30,7 @@ extern uint32_t g_us_timestamp_upper_32bit;
 extern int ncp_bb_con1_en_pin;
 #else
 extern int ncp_bb_con1_en_pin;
+extern int ncp_bb_con2_en_pin;
 extern int ncp_bb_con3_en_pin;
 #endif
 // extern StructNCP81239RegisterMap g_stPMICData;
@@ -131,6 +132,7 @@ void pd_power_supply_off(int port)
       digitalWrite(ncp_bb_con1_en_pin, LOW);
       break;
     case 2:
+      digitalWrite(ncp_bb_con2_en_pin, LOW);
       break;
     case 3:
       digitalWrite(ncp_bb_con3_en_pin, LOW);
@@ -263,6 +265,7 @@ int pd_set_power_supply_ready(int port)
       digitalWrite(ncp_bb_con1_en_pin, HIGH);
       break;
     case 2:
+      digitalWrite(ncp_bb_con2_en_pin, HIGH);
       break;
     case 3:
       digitalWrite(ncp_bb_con3_en_pin, HIGH);
