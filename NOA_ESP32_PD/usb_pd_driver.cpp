@@ -326,7 +326,7 @@ void pd_transition_voltage(int port, int idx)
   pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
   CPRINTF("Port %d Current requested index: %d %d mV %d mA", port, idx, pdo_mv, pdo_ma);
   pdo_mv = pdo_mv / 100;
-  while(pdo_mv != pdo_mv_source) {
+/*  while(pdo_mv != pdo_mv_source) {
     if (pdo_mv < pdo_mv_source) {
       pdo_mv_source = pdo_mv_source - _TYPE_C_PMIC_VOLTAGE_OFFSET;
     }
@@ -336,16 +336,13 @@ void pd_transition_voltage(int port, int idx)
     g_stPMICData[port].ucCR01DacTarget = pdo_mv_source;
     ncp81239_pmic_set_voltage(port);
     delay(4);
+  } */
+  if (pdo_mv != pdo_mv_source) {
+    g_stPMICData[port].ucCR01DacTarget = pdo_mv + _TYPE_C_PMIC_VOLTAGE_OFFSET;
+    pdo_mv_source = g_stPMICData[port].ucCR01DacTarget;
+    ncp81239_pmic_set_voltage(port);
+    delay(4);
   }
-//    g_stPMICData.ucCR01DacTarget = pdo_mv / 100 + _TYPE_C_PMIC_VOLTAGE_OFFSET;
-//    g_stPMICData.ucCR01DacTarget = 15000 / 100;
-//    g_stPMICData.b2CR06Cs1Clind = pdo_ma / 1000;
-//    g_stPMICData.b2CR06Cs1Clind = pdo_ma / 1000;
-//    ncp81239_pmic_set_tatus();
-//    ncp81239_pmic_set_voltage();
-//    delay(50);
-//    ncp81239_pmic_get_tatus();
-//    digitalWrite(ncp_bb_con_en_pin, HIGH);
 #endif
 }
 
