@@ -10,7 +10,7 @@
 #include "NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.0.3"
+#define NOA_ESP32_PD_VERSION "0.0.0.4"
 #else
 #define NOA_ESP32_PD_VERSION "0.1.0.4"
 #endif
