@@ -12,7 +12,7 @@
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.0.2"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.2"
+#define NOA_ESP32_PD_VERSION "0.1.0.3"
 #endif
 
 #ifdef NOA_PD_SNACKER
@@ -184,6 +184,7 @@ void setup() {
   
   Wire.begin(23,18);
   Wire.setClock(400000);
+//  Wire.setClock(1000000);
 
   Wire1.begin(21,22);
   Wire1.setClock(400000);
@@ -245,7 +246,6 @@ void loop() {
   // For some reason, a delay of 4 ms seems to be best
   // My guess is that spamming the I2C bus too fast causes problems
   delay(1);
-//  delayMicroseconds(100);
 #else
   int reset = 0;
   if (LOW == digitalRead(usb_pd_snk_int_pin)) {

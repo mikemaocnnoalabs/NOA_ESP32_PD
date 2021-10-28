@@ -851,8 +851,8 @@ static int fusb302_tcpm_transmit(int port, enum tcpm_transmit_type type,
 		fusb302_tcpm_send_message(port, header, data, buf, buf_pos);
 	    // wait for the GoodCRC to come back before we let the rest
 	    // of the code do stuff like change polarity and miss it
-//	    delayMicroseconds(1200);
-      delayMicroseconds(600); // mike 20211018
+	    delayMicroseconds(1200);
+//      delayMicroseconds(600); // mike 20211018
 	    return 0;
 	case TCPC_TX_HARD_RESET:
 		/* Simply hit the SEND_HARD_RESET bit */
@@ -913,7 +913,8 @@ void fusb302_tcpc_alert(int port)
 
   if (port == 0) {
     if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
-      DBGLOG(Info, "p%d interrupt %d interrupta %d interruptb %d", port, interrupt, interrupta, interruptb);
+      // open the log will make LATTEPANDA PD adapter fail
+//      DBGLOG(Info, "p%d interrupt %d interrupta %d interruptb %d", port, interrupt, interrupta, interruptb);
     }
   } else {
     if (interrupt > 0 || interrupta > 0 || interruptb > 0) {
