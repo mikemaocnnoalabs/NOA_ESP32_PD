@@ -1087,7 +1087,9 @@ static void handle_data_request(int port, uint16_t head,
 {
 	int type = PD_HEADER_TYPE(head);
 	int cnt = PD_HEADER_CNT(head);
-  CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
+  if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
+    CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
+  }
 	switch (type) {
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 	case PD_DATA_SOURCE_CAP:
@@ -1561,8 +1563,9 @@ static void handle_request(int port, uint16_t head,
 	int cnt = PD_HEADER_CNT(head);
   int type = PD_HEADER_TYPE(head);
 	int p = 0;
-  CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
-
+  if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
+    CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
+  }
 	/* dump received packet content (only dump ping at debug level 3) */
 	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) || debug_level >= 3) {
 //		CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
