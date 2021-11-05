@@ -81,6 +81,8 @@ void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
     Wire1.endTransmission(false);
     Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)16, true);
   }
+  Serial.print("I2C bus 0x");
+  Serial.println(PD_ADDR, HEX);
   uint8_t c = 0;
   for (int i=1; i<=16; i++) {  // FUSB302 只有0x1-0x10 和0x3C-0x42寄存器 0x43是FIFO data
     if (nIndex == 0) {
@@ -174,6 +176,8 @@ void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
     Wire1.endTransmission(false);
     Wire1.requestFrom((uint16_t)PD_ADDR, (uint8_t)11, true);
   }
+  Serial.print("I2C bus 0x");
+  Serial.println(PD_ADDR, HEX);
   uint8_t c = 0;
   for (int i=0x0; i<=0x0A; i++) {  // NCP81239 只有0x0-0x0A(read write) 0x10-0x15(read only)
     if (nIndex == 0) {

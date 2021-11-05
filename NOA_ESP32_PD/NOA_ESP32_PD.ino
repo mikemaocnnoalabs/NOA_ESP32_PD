@@ -12,7 +12,7 @@
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.0.4"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.4"
+#define NOA_ESP32_PD_VERSION "0.1.0.5"
 #endif
 
 #ifdef NOA_PD_SNACKER
@@ -39,17 +39,17 @@ const int usb_pd_snk_int_pin = 38;  // init pin for PD snk(P1)
 const int usb_pd_snk_sel_pin = 14;  // sel pin for PD snk(P1)
 
 const int usb_pd_src1_int_pin = 34;  // init pin for PD src_1(P2)
-const int usb_pd_src1_sel_pin = 19;  // sel pin for PD src_1(P2)
+int usb_pd_src1_sel_pin = 19;  // sel pin for PD src_1(P2)
 const int ncp_bb_con1_int_pin = 35;  // init pin for src_1 ncp81239(P2)
 int ncp_bb_con1_en_pin = 2;          // enable pin for src_1 ncp81239(P2)
 
 const int usb_pd_src3_int_pin = 36;  // init pin for PD src_3(P3)
-const int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_3(P3)
+int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_3(P3)
 const int ncp_bb_con3_int_pin = 37;  // init pin for src_3 ncp81239(P3)
 int ncp_bb_con3_en_pin = 25;         // enable pin for src_3 ncp81239(P3)
 
 const int usb_pd_src2_int_pin = 39;  // init pin for PD src_2(P0)
-const int usb_pd_src2_sel_pin = 27;  // sel pin for PD src_2(P0)
+int usb_pd_src2_sel_pin = 27;  // sel pin for PD src_2(P0)
 const int ncp_bb_con2_int_pin = 13;  // init pin for src_2 ncp81239(P0)
 int ncp_bb_con2_en_pin = 4;          // enable pin for src_2 ncp81239(P0)
 
@@ -150,12 +150,7 @@ void setup() {
   Wire1.setClock(400000);
 
   NOA_PUB_I2C_Scanner(0);
-  NOA_PUB_I2C_PD_RreadAllRegs(0, PD_ADDR);
-//  NOA_PUB_I2C_PD_Testing(0, PD_ADDR);
-
   NOA_PUB_I2C_Scanner(1);
-  NOA_PUB_I2C_PD_RreadAllRegs(1, PD_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(1, PM_ADDR);
   
   pd_init(0); // init pd snk
   delay(50);
@@ -165,6 +160,11 @@ void setup() {
 
   ncp81239_pmic_init(1);
   ncp81239_pmic_set_tatus(1);
+  delay(50);
+
+  NOA_PUB_I2C_PD_RreadAllRegs(0, PD_ADDR);
+  NOA_PUB_I2C_PD_RreadAllRegs(1, PD_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(1, PM_ADDR);
 #else  
   pinMode(usb_pd_src3_int_pin, INPUT_PULLUP);  // SRC 3
   pinMode(ncp_bb_con3_int_pin, INPUT_PULLUP);
@@ -182,25 +182,17 @@ void setup() {
   pinMode(usb_pd_src2_sel_pin, OUTPUT); // SEL for SRC 2
   digitalWrite(usb_pd_src2_sel_pin, HIGH);
   
-  Wire.begin(23,18);
-  Wire.setClock(400000);
-//  Wire.setClock(1000000);
+  Wire.begin(23,18);  // P1 SNK(C 0), P3 UP SRC(C 2)
+//  Wire.setClock(400000);
+  Wire.setClock(600000);
 
-  Wire1.begin(21,22);
-  Wire1.setClock(400000);
+  Wire1.begin(21,22); // P2 SRC(C 1) P3 SRC(C 3)
+//  Wire1.setClock(400000);
+  Wire1.setClock(600000);
 
   NOA_PUB_I2C_Scanner(0);
-  NOA_PUB_I2C_PD_RreadAllRegs(0, P1D_ADDR);
-//  NOA_PUB_I2C_PD_Testing(0, PD_ADDR);
-//  delay(1000);
-  NOA_PUB_I2C_PD_RreadAllRegs(0, PUPD_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(0, PUPM_ADDR);
-
+  
   NOA_PUB_I2C_Scanner(1);
-  NOA_PUB_I2C_PD_RreadAllRegs(1, P2D_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(1, P2M_ADDR);
-  NOA_PUB_I2C_PD_RreadAllRegs(1, P3D_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(1, P3M_ADDR);
 
   pd_init(0); // init pd snk
   delay(50);
@@ -210,18 +202,35 @@ void setup() {
 
   ncp81239_pmic_init(1);
   ncp81239_pmic_set_tatus(1);
+//  ncp81239_pmic_get_tatus(1);
 
   pd_init(2); // init pd src 2
   delay(50);
 
   ncp81239_pmic_init(2);
   ncp81239_pmic_set_tatus(2);
+//  ncp81239_pmic_get_tatus(2);
   
   pd_init(3); // init pd src 3
   delay(50);
 
   ncp81239_pmic_init(3);
   ncp81239_pmic_set_tatus(3);
+//  ncp81239_pmic_get_tatus(3);
+
+  delay(50);
+  Serial.printf(" P1 SNK C0\r\n");
+  NOA_PUB_I2C_PD_RreadAllRegs(0, P1D_ADDR);
+  Serial.printf(" P0 UP SRC C2\r\n");
+  NOA_PUB_I2C_PD_RreadAllRegs(0, PUPD_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(0, PUPM_ADDR);
+
+  Serial.printf(" P2 SRC C1\r\n");
+  NOA_PUB_I2C_PD_RreadAllRegs(1, P2D_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(1, P2M_ADDR);
+  Serial.printf(" P3 SRC C3\r\n");
+  NOA_PUB_I2C_PD_RreadAllRegs(1, P3D_ADDR);
+  NOA_PUB_I2C_PM_RreadAllRegs(1, P3M_ADDR);
 #endif
 }
 
@@ -263,18 +272,27 @@ void loop() {
 //      and voltage without connection is about 3.4 V, not zero
     }
     pd_run_state_machine(1, 0);
+    if (LOW == digitalRead(ncp_bb_con1_int_pin)) {
+//      DBGLOG(Info, "PM SRC 1 init pin LOW");
+    }
 
     if (LOW == digitalRead(usb_pd_src2_int_pin)) {
       tcpc_alert(2);
 //      DBGLOG(Info, "PD SRC 2 init pin LOW");
     }
     pd_run_state_machine(2, 0);
+    if (LOW == digitalRead(ncp_bb_con2_int_pin)) {
+//      DBGLOG(Info, "PM SRC 2 init pin LOW");      
+    }
     
     if (LOW == digitalRead(usb_pd_src3_int_pin)) {
       tcpc_alert(3);
 //      DBGLOG(Info, "PD SRC 3 init pin LOW");
     }
     pd_run_state_machine(3, 0);
+    if (LOW == digitalRead(ncp_bb_con3_int_pin)) {
+//      DBGLOG(Info, "PM SRC 3 init pin LOW");
+    }
   }
   delay(1);
 #endif
