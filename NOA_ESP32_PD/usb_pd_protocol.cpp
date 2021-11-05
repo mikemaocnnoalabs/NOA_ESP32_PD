@@ -49,14 +49,12 @@ static const int debug_level = 3;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
-#define DUAL_ROLE_IF_ELSE(port, sink_clause, src_clause) \
-	(pd[port].power_role == PD_ROLE_SINK ? (sink_clause) : (src_clause))
+#define DUAL_ROLE_IF_ELSE(port, sink_clause, src_clause) (pd[port].power_role == PD_ROLE_SINK ? (sink_clause) : (src_clause))
 #else
 #define DUAL_ROLE_IF_ELSE(port, sink_clause, src_clause) (src_clause)
 #endif
 
-#define READY_RETURN_STATE(port) DUAL_ROLE_IF_ELSE(port, PD_STATE_SNK_READY, \
-							 PD_STATE_SRC_READY)
+#define READY_RETURN_STATE(port) DUAL_ROLE_IF_ELSE(port, PD_STATE_SNK_READY, PD_STATE_SRC_READY)
 
 /* Type C supply voltage (mV) */
 #define TYPE_C_VOLTAGE	5000 /* mV */
@@ -113,7 +111,7 @@ static const uint8_t vdo_ver[] = {
 // static int timeout = 10*MSEC_US;  // mike disable
 // static int cc1, cc2; // mike disable
 // static int res = 0, incoming_packet = 0; // mike disable
-static int hard_reset_count = 0;
+// static int hard_reset_count = 0;   // mike disable
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 static uint64_t next_role_swap = PD_T_DRP_SNK;
 #ifndef CONFIG_USB_PD_VBUS_DETECT_NONE
@@ -129,7 +127,8 @@ static typec_current_t typec_curr = 0, typec_curr_change = 0;
 // static enum pd_states this_state;    // mike disable
 // static enum pd_cc_states new_cc_state; // mike disable
 // static timestamp_t now;    // mike disable
-static int caps_count = 0, hard_reset_sent = 0;
+static int caps_count = 0; //, hard_reset_sent = 0;
+static int hard_reset_count[CONFIG_USB_PD_PORT_COUNT] = {0}, hard_reset_sent[CONFIG_USB_PD_PORT_COUNT] = {0};
 static int snk_cap_count = 0;
 static int evt = 0;
 
@@ -425,7 +424,7 @@ static inline void set_state(int port, enum pd_states next_state)
 	if (debug_level >= 1) {
 		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
 	} else {
-		CPRINTF("C%d st%d", port, next_state);
+//		CPRINTF("C%d st%d", port, next_state);
 	}
 }
 
@@ -1569,10 +1568,10 @@ static void handle_request(int port, uint16_t head,
 	/* dump received packet content (only dump ping at debug level 3) */
 	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) || debug_level >= 3) {
 //		CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
-    if (port == 1) {
-  		for (p = 0; p < cnt; p++)
-	  		CPRINTF("[%d]%08x ", p, payload[p]);
-    }
+//    if (port != 0) {
+//  		for (p = 0; p < cnt; p++)
+//	  		CPRINTF("[%d]%08x ", p, payload[p]);
+//    }
 //  		CPRINTF("\n");
 	}
 
@@ -2244,8 +2243,7 @@ void pd_run_state_machine(int port, int reset)
 			    (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE &&
 			    pd[port].task_state == PD_STATE_SRC_READY))) {
 			tcpm_set_polarity(port, pd[port].polarity);
-			tcpm_set_msg_header(port, pd[port].power_role,
-						pd[port].data_role);
+			tcpm_set_msg_header(port, pd[port].power_role, pd[port].data_role);
 			tcpm_set_rx_enable(port, 1);
 		} else {
 			/* Ensure state variables are at default */
@@ -2278,7 +2276,6 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SRC_DISCONNECTED:
 		timeout = 10*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
-//    CPRINTF("C%d SRC DISCONNECTED cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
 #ifdef CONFIG_USB_PD_DUAL_ROLE_AUTO_TOGGLE
 		/*
 			* Attempt TCPC auto DRP toggle if it is
@@ -2287,8 +2284,7 @@ void pd_run_state_machine(int port, int reset)
 		if (auto_toggle_supported &&
 			!(pd[port].flags & PD_FLAGS_TCPC_DRP_TOGGLE) &&
 			!(pd[port].flags & PD_FLAGS_TRY_SRC) &&
-			(cc1 == TYPEC_CC_VOLT_OPEN &&
-			    cc2 == TYPEC_CC_VOLT_OPEN)) {
+			(cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN)) {
 			set_state(port, PD_STATE_DRP_AUTO_TOGGLE);
 			timeout = 2*MSEC_US;
 			break;
@@ -2339,7 +2335,6 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SRC_DISCONNECTED_DEBOUNCE:
 		timeout = 20*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
-//    CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d", port, cc1, cc2);
     CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
 		if (cc1 == TYPEC_CC_VOLT_RD && cc2 == TYPEC_CC_VOLT_RD) {
 			/* Debug accessory */
@@ -2401,7 +2396,7 @@ void pd_run_state_machine(int port, int reset)
 #endif
 
 			pd[port].flags |= PD_FLAGS_CHECK_PR_ROLE | PD_FLAGS_CHECK_DR_ROLE;
-			hard_reset_count = 0;
+			hard_reset_count[port] = 0;
 			timeout = 5*MSEC_US;
 			set_state(port, PD_STATE_SRC_STARTUP);
 		}
@@ -2423,6 +2418,16 @@ void pd_run_state_machine(int port, int reset)
 			set_state(port, PD_STATE_SRC_DISCONNECTED);
 			break;
 		}
+    tcpm_get_cc(port, &cc1, &cc2);
+    CPRINTF("C%d SRC HARD RESET RECOVER cc1 = %d cc2 = %d flag = %d polarity %d", port, cc1, cc2, pd[port].flags, pd[port].polarity);
+    if (cc1 == 2 && cc2 == 2 && (port == 2)) {// fix up port(p0 C2) issue, can't fixed normal usb disk/hub issue
+      if (pd[port].polarity == 0) {
+        pd[port].polarity = 1;
+      } else {
+        pd[port].polarity = 0;
+      }
+      tcpm_set_polarity(port, pd[port].polarity);
+    }
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 		/*
 			* After transmitting hard reset, TCPM writes
@@ -2468,7 +2473,7 @@ void pd_run_state_machine(int port, int reset)
 			if (pd[port].flags & PD_FLAGS_PREVIOUS_PD_CONN)
 				set_state_timeout(port,
 					get_time().val + PD_T_NO_RESPONSE,
-					hard_reset_count < PD_HARD_RESET_COUNT ? PD_STATE_HARD_RESET_SEND : PD_STATE_SRC_DISCONNECTED);
+					hard_reset_count[port] < PD_HARD_RESET_COUNT ? PD_STATE_HARD_RESET_SEND : PD_STATE_SRC_DISCONNECTED);
 		}
 
 		/* Send source cap some minimum number of times */
@@ -2479,7 +2484,7 @@ void pd_run_state_machine(int port, int reset)
 			if (res >= 0) {
 				set_state(port, PD_STATE_SRC_NEGOCIATE);
 				timeout = 10*MSEC_US;
-				hard_reset_count = 0;
+				hard_reset_count[port] = 0;
 				caps_count = 0;
 				/* Port partner is PD capable */
 				pd[port].flags |= PD_FLAGS_PREVIOUS_PD_CONN;
@@ -2768,7 +2773,7 @@ void pd_run_state_machine(int port, int reset)
 		if (cc1 != TYPEC_CC_VOLT_OPEN || cc2 != TYPEC_CC_VOLT_OPEN) {
       CPRINTF("C%d SNK DISCONNECTED cc1 = %d cc2 = %d", port, cc1, cc2);
 			pd[port].cc_state = PD_CC_NONE;
-			hard_reset_count = 0;
+			hard_reset_count[port] = 0;
 			new_cc_state = PD_CC_NONE;
 			pd[port].cc_debounce = get_time().val + PD_T_CC_DEBOUNCE;
 			set_state(port, PD_STATE_SNK_DISCONNECTED_DEBOUNCE);
@@ -2852,7 +2857,7 @@ void pd_run_state_machine(int port, int reset)
 
 		/* We are attached */
 		pd[port].polarity = get_snk_polarity(cc1, cc2);
-    CPRINTF("C[%d].polarity = %d", port, pd[port].polarity);
+//    CPRINTF("C[%d].polarity = %d", port, pd[port].polarity);
 		tcpm_set_polarity(port, pd[port].polarity);
 		/* reset message ID  on connection */
 		pd[port].msg_id = 0;
@@ -2889,36 +2894,20 @@ void pd_run_state_machine(int port, int reset)
 			* recovery time for the source.
 			*/
 		if (pd[port].last_state != pd[port].task_state)
-			set_state_timeout(port, get_time().val +
-						PD_T_SAFE_0V +
-						PD_T_SRC_RECOVER_MAX +
-						PD_T_SRC_TURN_ON,
-						PD_STATE_SNK_DISCONNECTED);
+			set_state_timeout(port, get_time().val + PD_T_SAFE_0V + PD_T_SRC_RECOVER_MAX + PD_T_SRC_TURN_ON, PD_STATE_SNK_DISCONNECTED);
 #else
 		/* Wait for VBUS to go low and then high*/
 		if (pd[port].last_state != pd[port].task_state) {
 			snk_hard_reset_vbus_off = 0;
-			set_state_timeout(port,
-						get_time().val +
-						PD_T_SAFE_0V,
-						hard_reset_count <
-						PD_HARD_RESET_COUNT ?
-						    PD_STATE_HARD_RESET_SEND :
-						    PD_STATE_SNK_DISCOVERY);
+			set_state_timeout(port, get_time().val + PD_T_SAFE_0V, hard_reset_count[port] < PD_HARD_RESET_COUNT ? PD_STATE_HARD_RESET_SEND : PD_STATE_SNK_DISCOVERY);
 		}
 
-		if (!pd_is_vbus_present(port) &&
-			!snk_hard_reset_vbus_off) {
+		if (!pd_is_vbus_present(port) && !snk_hard_reset_vbus_off) {
 			/* VBUS has gone low, reset timeout */
 			snk_hard_reset_vbus_off = 1;
-			set_state_timeout(port,
-						get_time().val +
-						PD_T_SRC_RECOVER_MAX +
-						PD_T_SRC_TURN_ON,
-						PD_STATE_SNK_DISCONNECTED);
+			set_state_timeout(port, get_time().val + PD_T_SRC_RECOVER_MAX + PD_T_SRC_TURN_ON, PD_STATE_SNK_DISCONNECTED);
 		}
-		if (pd_is_vbus_present(port) &&
-			snk_hard_reset_vbus_off) {
+		if (pd_is_vbus_present(port) && snk_hard_reset_vbus_off) {
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 			/*
 				* After transmitting hard reset, TCPM writes
@@ -2960,7 +2949,7 @@ void pd_run_state_machine(int port, int reset)
 				* start SinkWaitCapTimer, otherwise start
 				* NoResponseTimer.
 				*/
-			else if (hard_reset_count < PD_HARD_RESET_COUNT)
+			else if (hard_reset_count[port] < PD_HARD_RESET_COUNT)
 				set_state_timeout(port,
 						get_time().val +
 						PD_T_SINK_WAIT_CAP,
@@ -3012,7 +3001,7 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SNK_REQUESTED:
 		/* Wait for ACCEPT or REJECT */
 		if (pd[port].last_state != pd[port].task_state) {
-			hard_reset_count = 0;
+			hard_reset_count[port] = 0;
 			set_state_timeout(port,
 						get_time().val +
 						PD_T_SENDER_RESPONSE,
@@ -3247,9 +3236,9 @@ void pd_run_state_machine(int port, int reset)
 		}
 		break;
 	case PD_STATE_HARD_RESET_SEND:
-		hard_reset_count++;
+		hard_reset_count[port]++;
 		if (pd[port].last_state != pd[port].task_state)
-			hard_reset_sent = 0;
+			hard_reset_sent[port] = 0;
 #ifdef CONFIG_CHARGE_MANAGER
 		if (pd[port].last_state == PD_STATE_SNK_DISCOVERY ||
 			(pd[port].last_state == PD_STATE_SOFT_RESET &&
@@ -3270,15 +3259,14 @@ void pd_run_state_machine(int port, int reset)
 #endif
 
 		/* try sending hard reset until it succeeds */
-		if (!hard_reset_sent) {
-			if (pd_transmit(port, TCPC_TX_HARD_RESET,
-					0, NULL) < 0) {
+		if (!hard_reset_sent[port]) {
+			if (pd_transmit(port, TCPC_TX_HARD_RESET, 0, NULL) < 0) {
 				timeout = 10*MSEC_US;
 				break;
 			}
 
 			/* successfully sent hard reset */
-			hard_reset_sent = 1;
+			hard_reset_sent[port] = 1;
 			/*
 				* If we are source, delay before cutting power
 				* to allow sink time to get hard reset.
@@ -3419,8 +3407,9 @@ void pd_run_state_machine(int port, int reset)
 		/* Source: detect disconnect by monitoring CC */
 		tcpm_get_cc(port, &cc1, &cc2);
 //    CPRINTF("C%d SRC cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
-		if (pd[port].polarity)
+		if (pd[port].polarity) {
 			cc1 = cc2;
+		}
 		if (cc1 == TYPEC_CC_VOLT_OPEN) {
 			set_state(port, PD_STATE_SRC_DISCONNECTED);
 			/* Debouncing */

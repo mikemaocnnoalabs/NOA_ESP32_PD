@@ -897,6 +897,7 @@ enum pd_data_msg_type {
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 // #define PD_ROLE_DEFAULT(port) PD_ROLE_SINK
 #define PD_ROLE_DEFAULT(port) (port == 0x0) ? PD_ROLE_SINK : PD_ROLE_SOURCE
+// #define PD_ROLE_DEFAULT(port) (port == 0x0 || port == 0x1) ? PD_ROLE_SINK : PD_ROLE_SOURCE
 #else
 #define PD_ROLE_DEFAULT(port) PD_ROLE_SOURCE
 #endif

@@ -28,17 +28,20 @@ extern "C" {
 #define CONFIG_USB_PD_DUAL_ROLE
 //#define CONFIG_USB_PD_GIVE_BACK
 #define CONFIG_USB_PD_SIMPLE_DFP
-//#define CONFIG_USB_PD_TCPM_TCPCI
+#define CONFIG_USB_PD_TCPM_TCPCI
 //#define CONFIG_USBC_VCONN
 #define PD_PREFER_HIGH_VOLTAGE
 
 /* Default pull-up value on the USB-C ports when they are used as source. */
 #define CONFIG_USB_PD_PULLUP TYPEC_RP_USB
+// #define CONFIG_USB_PD_PULLUP TYPEC_RP_1A5
+// #define CONFIG_USB_PD_PULLUP TYPEC_RP_3A0
 
 /* Override PD_ROLE_DEFAULT in usb_pd.h */
 // #define PD_ROLE_DEFAULT(port) (PD_ROLE_SINK)
 #ifndef PD_ROLE_DEFAULT
 #define PD_ROLE_DEFAULT(port) (port == 0x0) ? PD_ROLE_SINK : PD_ROLE_SOURCE
+// #define PD_ROLE_DEFAULT(port) (port == 0x0 || port == 0x1) ? PD_ROLE_SINK : PD_ROLE_SOURCE
 #endif
 
 /* Don't automatically change roles */

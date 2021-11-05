@@ -312,7 +312,7 @@ void pd_transition_voltage(int port, int idx)
 	vbus[DUT].ma = vbus[CHG].ma;
 #endif // if 0
 #if 1 // mike SRC control only
-  CPRINTF("Transition %d Port voltage", port);
+//  CPRINTF("Transition %d Port voltage", port);
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return;
   }
@@ -326,7 +326,7 @@ void pd_transition_voltage(int port, int idx)
   pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
   CPRINTF("Port %d Current requested index: %d %d mV %d mA", port, idx, pdo_mv, pdo_ma);
   pdo_mv = pdo_mv / 100;
-/*  while(pdo_mv != pdo_mv_source) {
+  while(pdo_mv != pdo_mv_source) {
     if (pdo_mv < pdo_mv_source) {
       pdo_mv_source = pdo_mv_source - _TYPE_C_PMIC_VOLTAGE_OFFSET;
     }
@@ -335,14 +335,13 @@ void pd_transition_voltage(int port, int idx)
     }
     g_stPMICData[port].ucCR01DacTarget = pdo_mv_source;
     ncp81239_pmic_set_voltage(port);
-    delay(4);
-  } */
-  if (pdo_mv != pdo_mv_source) {
+  }
+/*  if (pdo_mv != pdo_mv_source) {
     g_stPMICData[port].ucCR01DacTarget = pdo_mv + _TYPE_C_PMIC_VOLTAGE_OFFSET;
     pdo_mv_source = g_stPMICData[port].ucCR01DacTarget;
     ncp81239_pmic_set_voltage(port);
     delay(4);
-  }
+  } */
 #endif
 }
 
