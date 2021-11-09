@@ -212,8 +212,12 @@ enum fusb302_txfifo_tokens {
     fusb302_TKN_TXOFF = 0xFE,
 };
 
+#if 0
 extern const struct tcpm_drv fusb302_tcpm_drv_SNK;
 extern const struct tcpm_drv fusb302_tcpm_drv_SRC;
+#else
+extern const struct tcpm_drv fusb302_tcpm_drv;
+#endif
 /*
 // Common methods for TCPM implementations
 int     fusb302_tcpm_init(int port);

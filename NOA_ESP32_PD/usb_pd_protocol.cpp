@@ -422,7 +422,7 @@ static inline void set_state(int port, enum pd_states next_state)
 #endif
 
 	if (debug_level >= 1) {
-		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
+//		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
 	} else {
 //		CPRINTF("C%d st%d", port, next_state);
 	}
@@ -883,9 +883,9 @@ static void handle_vdm_request(int port, int cnt, uint32_t *payload)
 void pd_execute_hard_reset(int port)
 {
 	if (pd[port].last_state == PD_STATE_HARD_RESET_SEND) {
-		CPRINTF("C%d HARD RST TX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
+//		CPRINTF("C%d HARD RST TX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
 	} else {
-//		CPRINTF("C%d HARD RST RX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
+		CPRINTF("C%d HARD RST RX last_state %d task_state %d", port, pd[port].last_state, pd[port].task_state);
 	}
 
 	pd[port].msg_id = 0;
@@ -2428,6 +2428,14 @@ void pd_run_state_machine(int port, int reset)
       }
       tcpm_set_polarity(port, pd[port].polarity);
     }
+    if (cc1 == 1 && cc2 == 1 && (port == 1)) {// debug fix up port(p1 C1) issue, can't fixed normal usb disk/hub issue
+      if (pd[port].polarity == 0) {
+        pd[port].polarity = 1;
+      } else {
+        pd[port].polarity = 0;
+      }
+      tcpm_set_polarity(port, pd[port].polarity);
+    }
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 		/*
 			* After transmitting hard reset, TCPM writes
@@ -2529,6 +2537,7 @@ void pd_run_state_machine(int port, int reset)
 			timeout = 10*MSEC_US;
 			/* it'a time to ping regularly the sink */
 			set_state(port, PD_STATE_SRC_READY);
+//      pd_ping_enable(port, 1);  // enable ping CMD
 		} else {
 			/* The sink did not ack, cut the power... */
 			set_state(port, PD_STATE_SRC_DISCONNECTED);

@@ -19,6 +19,7 @@ extern "C" {
 #include "tcpm.h"
 #include "FUSB302.h"
 
+#if 0
 // #define NOA_PD_SNACKER
 #ifndef NOA_PD_SNACKER
 #define NOA_PD_STATION
@@ -29,6 +30,8 @@ extern "C" {
 // extern struct i2c_master_module i2c_master_instance;
 #else
 #define CONFIG_USB_PD_PORT_COUNT 4
+#endif
+
 #endif
 
 #ifdef __cplusplus
