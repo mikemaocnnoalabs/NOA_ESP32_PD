@@ -9,7 +9,7 @@
 #include "NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.0.4"
+#define NOA_ESP32_PD_VERSION "0.0.0.5"
 #else
 #define NOA_ESP32_PD_VERSION "0.1.0.5"
 #endif
@@ -21,7 +21,7 @@ const int usb_pd_snk_int_pin = 32;    // init pin for PD snk
 const int usb_pd_snk_sel_pin = 33;    // sel pin for PD snk
 
 const int usb_pd_src1_int_pin = 23;   // init pin for PD src
-const int usb_pd_src1_sel_pin = 14;   // sel pin for PD src
+int usb_pd_src1_sel_pin = 14;         // sel pin for PD src
 
 const int ncp_bb_con1_int_pin = 25;   // init pin for ncp81239
 int ncp_bb_con1_en_pin = 12;          // enable pin for ncp81239

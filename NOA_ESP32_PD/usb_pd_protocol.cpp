@@ -131,6 +131,7 @@ static int caps_count = 0; //, hard_reset_sent = 0;
 static int hard_reset_count[CONFIG_USB_PD_PORT_COUNT] = {0}, hard_reset_sent[CONFIG_USB_PD_PORT_COUNT] = {0};
 static int snk_cap_count = 0;
 static int evt = 0;
+static int snk_is_hub = 0;
 
 enum vdm_states {
   VDM_STATE_ERR_BUSY = -3,
@@ -2420,6 +2421,7 @@ void pd_run_state_machine(int port, int reset)
 		}
     tcpm_get_cc(port, &cc1, &cc2);
     CPRINTF("C%d SRC HARD RESET RECOVER cc1 = %d cc2 = %d flag = %d polarity %d", port, cc1, cc2, pd[port].flags, pd[port].polarity);
+#ifndef NOA_PD_SNACKER    
     if (cc1 == 2 && cc2 == 2 && (port == 2)) {// fix up port(p0 C2) issue, can't fixed normal usb disk/hub issue
       if (pd[port].polarity == 0) {
         pd[port].polarity = 1;
@@ -2436,6 +2438,7 @@ void pd_run_state_machine(int port, int reset)
       }
       tcpm_set_polarity(port, pd[port].polarity);
     }
+#endif
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 		/*
 			* After transmitting hard reset, TCPM writes
@@ -2836,24 +2839,20 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Debounce the cc state */
 		if (new_cc_state != pd[port].cc_state) {
-			pd[port].cc_debounce = get_time().val +
-				PD_T_CC_DEBOUNCE;
+			pd[port].cc_debounce = get_time().val + PD_T_CC_DEBOUNCE;
 			pd[port].cc_state = new_cc_state;
 			break;
 		}
 		/* Wait for CC debounce and VBUS present */
-		if (get_time().val < pd[port].cc_debounce ||
-			!pd_is_vbus_present(port))
+		if (get_time().val < pd[port].cc_debounce || !pd_is_vbus_present(port))
 			break;
 
-		if (pd_try_src_enable &&
-			!(pd[port].flags & PD_FLAGS_TRY_SRC)) {
+		if (pd_try_src_enable && !(pd[port].flags & PD_FLAGS_TRY_SRC)) {
 			/*
 				* If TRY_SRC is enabled, but not active,
 				* then force attempt to connect as source.
 				*/
-			pd[port].try_src_marker = get_time().val
-				+ PD_T_TRY_SRC;
+			pd[port].try_src_marker = get_time().val + PD_T_TRY_SRC;
 			/* Swap roles to source */
 			pd[port].power_role = PD_ROLE_SOURCE;
 			tcpm_set_cc(port, TYPEC_CC_RP);
@@ -2940,8 +2939,7 @@ void pd_run_state_machine(int port, int reset)
 		break;
 	case PD_STATE_SNK_DISCOVERY:
 		/* Wait for source cap expired only if we are enabled */
-		if ((pd[port].last_state != pd[port].task_state)
-			&& pd_comm_is_enabled(port)) {
+		if ((pd[port].last_state != pd[port].task_state) && pd_comm_is_enabled(port)) {
 			/*
 				* If VBUS has never been low, and we timeout
 				* waiting for source cap, try a soft reset
@@ -2963,8 +2961,7 @@ void pd_run_state_machine(int port, int reset)
 						get_time().val +
 						PD_T_SINK_WAIT_CAP,
 						PD_STATE_HARD_RESET_SEND);
-			else if (pd[port].flags &
-					PD_FLAGS_PREVIOUS_PD_CONN)
+			else if (pd[port].flags & PD_FLAGS_PREVIOUS_PD_CONN)
 				/* ErrorRecovery */
 				set_state_timeout(port,
 						get_time().val +
@@ -2977,10 +2974,17 @@ void pd_run_state_machine(int port, int reset)
 				* typec current limit. So, set to 0 so that
 				* we guarantee this is revised below.
 				*/
-			if (pd[port].last_state !=
-				PD_STATE_SNK_DISCONNECTED_DEBOUNCE)
+			if (pd[port].last_state != PD_STATE_SNK_DISCONNECTED_DEBOUNCE)
 				typec_curr = 0;
 #endif
+		} else {
+      tcpm_get_cc(port, &cc1, &cc2);
+      if (cc1 != TYPEC_CC_VOLT_OPEN || cc2 != TYPEC_CC_VOLT_OPEN) {
+        if (snk_is_hub == 0) {
+          pd_process_source_cap_callback(port, 1, NULL);
+          snk_is_hub = 1;
+        }
+      }
 		}
 
 #if defined(CONFIG_CHARGE_MANAGER)
@@ -2988,8 +2992,8 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Check if CC pull-up has changed */
 		tcpm_get_cc(port, &cc1, &cc2);
-		if (typec_curr != get_typec_current_limit(
-					pd[port].polarity, cc1, cc2)) {
+//    CPRINTF("C%d cc1 = %d cc2 = %d new typec_curr = %d", port, cc1, cc2, typec_curr);
+		if (typec_curr != get_typec_current_limit(pd[port].polarity, cc1, cc2)) {
 			/* debounce signal by requiring two reads */
 			if (typec_curr_change) {
 				/* set new input current limit */
@@ -3027,7 +3031,7 @@ void pd_run_state_machine(int port, int reset)
 		break;
 	case PD_STATE_SNK_READY:
 		timeout = 20*MSEC_US;
-
+    snk_is_hub = 0;
 		/*
 			* Don't send any PD traffic if we woke up due to
 			* incoming packet or if VDO response pending to avoid
