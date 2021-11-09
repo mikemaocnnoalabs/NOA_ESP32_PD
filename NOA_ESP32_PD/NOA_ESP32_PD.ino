@@ -2,7 +2,6 @@
 
 #include <Esp.h>
 
-// #include "tcpm_driver.h"
 #include "usb_pd.h"
 #include "NCP81239.h"
 
@@ -14,6 +13,8 @@
 #else
 #define NOA_ESP32_PD_VERSION "0.1.0.5"
 #endif
+
+extern int const usb_pd_snk_sel_pin;
 
 #ifdef NOA_PD_SNACKER
 const int usb_pd_snk_int_pin = 32;    // init pin for PD snk
@@ -27,8 +28,8 @@ int ncp_bb_con1_en_pin = 12;          // enable pin for ncp81239
 
 // USB-C Specific - TCPM start 1
 const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
-  {0, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SNK},
-  {1, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
+  {0, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv}, // SNK
+  {1, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv}, // SRC
 };
 // USB-C Specific - TCPM end 1
 
@@ -38,36 +39,37 @@ const uint8_t PM_ADDR = 0x74;
 const int usb_pd_snk_int_pin = 38;  // init pin for PD snk(P1)
 const int usb_pd_snk_sel_pin = 14;  // sel pin for PD snk(P1)
 
-const int usb_pd_src1_int_pin = 34;  // init pin for PD src_1(P2)
-int usb_pd_src1_sel_pin = 19;  // sel pin for PD src_1(P2)
-const int ncp_bb_con1_int_pin = 35;  // init pin for src_1 ncp81239(P2)
-int ncp_bb_con1_en_pin = 2;          // enable pin for src_1 ncp81239(P2)
+const int usb_pd_src2_int_pin = 39; // init pin for PD src_2(P0)
+int usb_pd_src2_sel_pin = 27;       // sel pin for PD src_2(P0)
+const int ncp_bb_con2_int_pin = 13; // init pin for src_2 ncp81239(P0)
+int ncp_bb_con2_en_pin = 4;         // enable pin for src_2 ncp81239(P0)
 
-const int usb_pd_src3_int_pin = 36;  // init pin for PD src_3(P3)
-int usb_pd_src3_sel_pin = 26;  // sel pin for PD src_3(P3)
-const int ncp_bb_con3_int_pin = 37;  // init pin for src_3 ncp81239(P3)
-int ncp_bb_con3_en_pin = 25;         // enable pin for src_3 ncp81239(P3)
+const int usb_pd_src1_int_pin = 34; // init pin for PD src_1(P2)
+int usb_pd_src1_sel_pin = 19;       // sel pin for PD src_1(P2)
+const int ncp_bb_con1_int_pin = 35; // init pin for src_1 ncp81239(P2)
+int ncp_bb_con1_en_pin = 2;         // enable pin for src_1 ncp81239(P2)
 
-const int usb_pd_src2_int_pin = 39;  // init pin for PD src_2(P0)
-int usb_pd_src2_sel_pin = 27;  // sel pin for PD src_2(P0)
-const int ncp_bb_con2_int_pin = 13;  // init pin for src_2 ncp81239(P0)
-int ncp_bb_con2_en_pin = 4;          // enable pin for src_2 ncp81239(P0)
+const int usb_pd_src3_int_pin = 36; // init pin for PD src_3(P3)
+int usb_pd_src3_sel_pin = 26;       // sel pin for PD src_3(P3)
+const int ncp_bb_con3_int_pin = 37; // init pin for src_3 ncp81239(P3)
+int ncp_bb_con3_en_pin = 25;        // enable pin for src_3 ncp81239(P3)
 
 // USB-C Specific - TCPM start 1
 const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
-  {0, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv_SNK},
-  {1, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
-  {2, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv_SRC},
-  {3, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv_SRC},
+  {0, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv},   // SNK(C0)(P1) bus0
+  {1, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv},       // SRC(C1)(P2) bus1
+  {0, fusb302_I2C_SLAVE_ADDR, &fusb302_tcpm_drv},       // SRC(C2)(P0 UP) bus0
+  {1, fusb302_I2C_SLAVE_ADDR_B01, &fusb302_tcpm_drv},   // SRC(C3)(P3) bus1
 };
+// USB-C Specific - TCPM end 1
 
 const uint8_t P1D_ADDR = 0x23;
 
-const uint8_t P2D_ADDR = 0x22;
-const uint8_t P2M_ADDR = 0x74;
-
 const uint8_t PUPD_ADDR = 0x22;
 const uint8_t PUPM_ADDR = 0x74;
+
+const uint8_t P2D_ADDR = 0x22;
+const uint8_t P2M_ADDR = 0x74;
 
 const uint8_t P3D_ADDR = 0x23;
 const uint8_t P3M_ADDR = 0x75;
@@ -77,12 +79,6 @@ int pd_source_cap_current_index = 0, pd_source_cap_max_index = 0;
 static int pd_sink_port_ready = 0;
 
 // This banner is checked the memmory of MCU platform
-//const char NOA_Banner[] = {0x7c, 0x20, 0x5c, 0x20, 0x7c, 0x20, 0x7c, 0x20, 0x2f, 0x20, 0x5f, 0x5f, 0x20, 0x5c, 0x20, 0x20, 0x20, 0x20, 0x2f, 0x5c, 0x20, 0x20, 0x20, 0x20, 0x0d, 0x0a,
-//                           0x7c, 0x20, 0x20, 0x5c, 0x7c, 0x20, 0x7c, 0x7c, 0x20, 0x7c, 0x20, 0x20, 0x7c, 0x20, 0x7c, 0x20, 0x20, 0x2f, 0x20, 0x20, 0x5c, 0x20, 0x20, 0x20, 0x0d, 0x0a,
-//                           0x7c, 0x20, 0x2e, 0x20, 0x60, 0x20, 0x7c, 0x7c, 0x20, 0x7c, 0x20, 0x20, 0x7c, 0x20, 0x7c, 0x20, 0x2f, 0x20, 0x2f, 0x5c, 0x20, 0x5c, 0x20, 0x20, 0x0d, 0x0a,
-//                           0x7c, 0x20, 0x7c, 0x5c, 0x20, 0x20, 0x7c, 0x7c, 0x20, 0x7c, 0x5f, 0x5f, 0x7c, 0x20, 0x7c, 0x2f, 0x20, 0x5f, 0x5f, 0x5f, 0x5f, 0x20, 0x5c, 0x20, 0x0d, 0x0a,
-//                           0x7c, 0x5f, 0x7c, 0x20, 0x5c, 0x5f, 0x7c, 0x20, 0x5c, 0x5f, 0x5f, 0x5f, 0x5f, 0x2f, 0x2f, 0x5f, 0x2f, 0x20, 0x20, 0x20, 0x20, 0x5c, 0x5f, 0x5c, 0x0d, 0x0a};
-
 const char NOA_Banner[] = {0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\
                            0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\
                            0xe2, 0x96, 0x88, 0x20, 0x0d, 0x0a, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\

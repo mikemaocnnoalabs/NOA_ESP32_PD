@@ -15,14 +15,26 @@ extern "C" {
 #include "tcpm_driver.h"
 #include "usb_pd_tcpm.h"
 
-#if defined(CONFIG_USB_PD_DUAL_ROLE_AUTO_TOGGLE) && \
-	!defined(CONFIG_USB_PD_DUAL_ROLE)
+// #define NOA_PD_SNACKER
+#ifndef NOA_PD_SNACKER
+#define NOA_PD_STATION
+#endif
+
+#ifdef NOA_PD_SNACKER
+#define CONFIG_USB_PD_PORT_COUNT 2
+// extern struct i2c_master_module i2c_master_instance;
+#else
+#define CONFIG_USB_PD_PORT_COUNT 4
+#endif
+
+#if defined(CONFIG_USB_PD_DUAL_ROLE_AUTO_TOGGLE) && !defined(CONFIG_USB_PD_DUAL_ROLE)
 #error "DRP auto toggle requires board to have DRP support"
 #error "Please upgrade your board configuration"
 #endif
 
 #ifndef CONFIG_USB_PD_TCPC
-extern const struct tcpc_config_t tcpc_config[];
+// extern const struct tcpc_config_t tcpc_config[];
+extern const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT];
 
 /* I2C wrapper functions - get I2C port / slave addr from config struct. */
 int tcpc_write(int port, int reg, int val);
