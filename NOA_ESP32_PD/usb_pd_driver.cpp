@@ -132,6 +132,7 @@ void pd_power_supply_off(int port)
       digitalWrite(ncp_bb_con1_en_pin, LOW);
       break;
     case 2:
+      ncp81239_pmic_set_tatus(port);
       digitalWrite(ncp_bb_con2_en_pin, LOW);
       break;
     case 3:

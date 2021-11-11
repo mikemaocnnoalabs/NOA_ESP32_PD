@@ -101,7 +101,20 @@ StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
 
 int     ncp81239_pmic_init(int port) {
   g_stPMICData[port] = g_stPmicInitialData;
+  int cc1 = 0, cc2 = 0;
+  tcpm_get_cc(port, &cc1, &cc2);
+  DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
 
+  if (port == 2) {
+    if (cc1 == 2 || cc2 == 2) {
+      g_stPMICData[port].b1CR00EnPol = 0x00;
+      g_stPMICData[port].b1CR00EnPup = 0x01;  // en_pup=1, en_pol=0: A high on the enable pin generated a turn on the pull up current ensure the parts starts immediately
+      g_stPMICData[port].b1CR00EnMask = 0x01; // en_mask=1, en_int=1: turn on part
+      g_stPMICData[port].b1CR00EnInternal = 0x01;
+      DBGLOG(Info, "Danger Key Port %d VBus is up to %dV", port, 0x96/10);
+      g_stPMICData[port].ucCR01DacTarget = 0x96;  // set port2 default voltage to 15V, not save for device
+    }
+  }
 /*  DBGLOG(Info, "INIT:En pol %d", g_stPMICData[port].b1CR00EnPol);
   DBGLOG(Info, "INITc:En pup %d", g_stPMICData[port].b1CR00EnPup);
   DBGLOG(Info, "INIT:En mask %d", g_stPMICData[port].b1CR00EnMask);
@@ -257,7 +270,15 @@ int ncp81239_pmic_set_voltage(int port) {
       NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1); 
       break;
     case 2:
-      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1); 
+      if (g_stPMICData[port].ucCR01DacTarget == 0x96) {
+        g_stPMICData[port].b1CR00EnPol = 0x00;
+        g_stPMICData[port].b1CR00EnPup = 0x01;  // en_pup=1, en_pol=0: A high on the enable pin generated a turn on the pull up current ensure the parts starts immediately
+        g_stPMICData[port].b1CR00EnMask = 0x01; // en_mask=1, en_int=1: turn on part
+        g_stPMICData[port].b1CR00EnInternal = 0x01;
+        DBGLOG(Info, "Danger Port %d VBus is up to %dV", port, 0x96/10);
+        NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 1);
+      }
+      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
       break;
     case 3:
       NOA_PUB_I2C_SendBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
@@ -274,14 +295,24 @@ int ncp81239_pmic_reset(int port) {
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
   }
-//  g_stPMICData[port].b1CR00EnPol = g_stPmicInitialData.b1CR00EnPol;
-//  g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
-//  g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
-//  g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
+  g_stPMICData[port].b1CR00EnPol = g_stPmicInitialData.b1CR00EnPol;
+  g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
+  g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
+  g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
 //  g_stPMICData[port].b4CR00Reserved = g_stPmicInitialData.b4CR00Reserved;
-  
+
   g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
-  
+
+  int cc1 = 0, cc2 = 0;
+  tcpm_get_cc(port, &cc1, &cc2);
+  DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+
+  if (port == 2) {
+    if (cc1 == 2 || cc2 == 2) {
+//      g_stPMICData[port].ucCR01DacTarget = 0x96;  // set port2 to 15V for defaul
+    }
+  }
+
 //  g_stPMICData[port].b2CR02SlewRate =  g_stPmicInitialData.b2CR02SlewRate;
 //  g_stPMICData[port].b6CR02Reserved = g_stPmicInitialData.b6CR02Reserved;
   

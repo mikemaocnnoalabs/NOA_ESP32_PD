@@ -9,9 +9,9 @@
 #include "NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.0.5"
+#define NOA_ESP32_PD_VERSION "0.0.0.6"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.5"
+#define NOA_ESP32_PD_VERSION "0.1.0.6"
 #endif
 
 extern int const usb_pd_snk_sel_pin;
@@ -173,7 +173,7 @@ void setup() {
   pinMode(usb_pd_src2_int_pin, INPUT_PULLUP);  // SRC 2
   pinMode(ncp_bb_con2_int_pin, INPUT_PULLUP);
   pinMode(ncp_bb_con2_en_pin, OUTPUT);
-  digitalWrite(ncp_bb_con2_en_pin, LOW);
+//  digitalWrite(ncp_bb_con2_en_pin, LOW);
 
   pinMode(usb_pd_src2_sel_pin, OUTPUT); // SEL for SRC 2
   digitalWrite(usb_pd_src2_sel_pin, HIGH);
@@ -202,6 +202,15 @@ void setup() {
 
   pd_init(2); // init pd src 2
   delay(50);
+
+  int cc1 = 0, cc2 = 0;
+  tcpm_get_cc(2, &cc1, &cc2);
+  DBGLOG(Info, "Port %d CC1 %d CC2 %d", 2, cc1, cc2);
+  if (cc1 == 0 && cc2 == 0) {
+    digitalWrite(ncp_bb_con2_en_pin, LOW);  // when port2 cc1 cc2 is open
+  } else {
+    digitalWrite(ncp_bb_con2_en_pin, HIGH);
+  }
 
   ncp81239_pmic_init(2);
   ncp81239_pmic_set_tatus(2);
