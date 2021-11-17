@@ -11,7 +11,7 @@
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.0.6"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.6"
+#define NOA_ESP32_PD_VERSION "0.1.0.7"
 #endif
 
 extern int const usb_pd_snk_sel_pin;
@@ -77,6 +77,7 @@ const uint8_t P3M_ADDR = 0x75;
 
 int pd_source_cap_current_index = 0, pd_source_cap_max_index = 0;
 static int pd_sink_port_ready = 0;
+static int pd_source_port_ready = 0;
 
 // This banner is checked the memmory of MCU platform
 const char NOA_Banner[] = {0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\
@@ -193,7 +194,7 @@ void setup() {
   pd_init(0); // init pd snk
   delay(50);
 
-  pd_init(1); // init pd src 1
+/*  pd_init(1); // init pd src 1
   delay(50);
 
   ncp81239_pmic_init(1);
@@ -223,19 +224,19 @@ void setup() {
   ncp81239_pmic_set_tatus(3);
 //  ncp81239_pmic_get_tatus(3);
 
-  delay(50);
-  Serial.printf(" P1 SNK C0\r\n");
-  NOA_PUB_I2C_PD_RreadAllRegs(0, P1D_ADDR);
-  Serial.printf(" P0 UP SRC C2\r\n");
-  NOA_PUB_I2C_PD_RreadAllRegs(0, PUPD_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(0, PUPM_ADDR);
+  delay(50); */
+//  Serial.printf(" P1 SNK C0\r\n");
+//  NOA_PUB_I2C_PD_RreadAllRegs(0, P1D_ADDR);
+//  Serial.printf(" P0 UP SRC C2\r\n");
+//  NOA_PUB_I2C_PD_RreadAllRegs(0, PUPD_ADDR);
+//  NOA_PUB_I2C_PM_RreadAllRegs(0, PUPM_ADDR);
 
-  Serial.printf(" P2 SRC C1\r\n");
-  NOA_PUB_I2C_PD_RreadAllRegs(1, P2D_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(1, P2M_ADDR);
-  Serial.printf(" P3 SRC C3\r\n");
-  NOA_PUB_I2C_PD_RreadAllRegs(1, P3D_ADDR);
-  NOA_PUB_I2C_PM_RreadAllRegs(1, P3M_ADDR);
+//  Serial.printf(" P2 SRC C1\r\n");
+//  NOA_PUB_I2C_PD_RreadAllRegs(1, P2D_ADDR);
+//  NOA_PUB_I2C_PM_RreadAllRegs(1, P2M_ADDR);
+//  Serial.printf(" P3 SRC C3\r\n");
+//  NOA_PUB_I2C_PD_RreadAllRegs(1, P3D_ADDR);
+//  NOA_PUB_I2C_PM_RreadAllRegs(1, P3M_ADDR);
 #endif
 }
 
@@ -269,34 +270,63 @@ void loop() {
   pd_run_state_machine(0, reset);
  
   if (pd_sink_port_ready == 1) {
-    if (LOW == digitalRead(usb_pd_src1_int_pin)) {
-      tcpc_alert(1);
-//      DBGLOG(Info, "PD SRC 1 init pin LOW");
-//      surrent version station hardware
-//      has problem, int port will always report low
-//      and voltage without connection is about 3.4 V, not zero
-    }
-    pd_run_state_machine(1, 0);
-    if (LOW == digitalRead(ncp_bb_con1_int_pin)) {
-//      DBGLOG(Info, "PM SRC 1 init pin LOW");
-    }
+    if (pd_source_port_ready == 0) {
+//      delay(1000);
+      pd_init(1); // init pd src 1
+//      delay(50);
 
-    if (LOW == digitalRead(usb_pd_src2_int_pin)) {
-      tcpc_alert(2);
+      ncp81239_pmic_init(1);
+      ncp81239_pmic_set_tatus(1);
+
+      pd_init(2); // init pd src 2
+//      delay(50);
+
+      int cc1 = 0, cc2 = 0;
+      tcpm_get_cc(2, &cc1, &cc2);
+      DBGLOG(Info, "Port %d CC1 %d CC2 %d", 2, cc1, cc2);
+      if (cc1 == 0 && cc2 == 0) {
+        digitalWrite(ncp_bb_con2_en_pin, LOW);  // when port2 cc1 cc2 is open
+      } else {
+        digitalWrite(ncp_bb_con2_en_pin, HIGH);
+      }
+      
+      ncp81239_pmic_init(2);
+      ncp81239_pmic_set_tatus(2);
+  
+      pd_init(3); // init pd src 3
+//      delay(50);
+
+      ncp81239_pmic_init(3);
+      ncp81239_pmic_set_tatus(3);
+//      delay(50);
+      pd_source_port_ready = 1;
+    } else {
+      if (LOW == digitalRead(usb_pd_src1_int_pin)) {
+        tcpc_alert(1);
+//      DBGLOG(Info, "PD SRC 1 init pin LOW");
+      }
+      pd_run_state_machine(1, 0);
+      if (LOW == digitalRead(ncp_bb_con1_int_pin)) {
+//      DBGLOG(Info, "PM SRC 1 init pin LOW");
+      }
+
+      if (LOW == digitalRead(usb_pd_src2_int_pin)) {
+        tcpc_alert(2);
 //      DBGLOG(Info, "PD SRC 2 init pin LOW");
-    }
-    pd_run_state_machine(2, 0);
-    if (LOW == digitalRead(ncp_bb_con2_int_pin)) {
+      }
+      pd_run_state_machine(2, 0);
+      if (LOW == digitalRead(ncp_bb_con2_int_pin)) {
 //      DBGLOG(Info, "PM SRC 2 init pin LOW");      
-    }
+      }
     
-    if (LOW == digitalRead(usb_pd_src3_int_pin)) {
-      tcpc_alert(3);
+      if (LOW == digitalRead(usb_pd_src3_int_pin)) {
+        tcpc_alert(3);
 //      DBGLOG(Info, "PD SRC 3 init pin LOW");
-    }
-    pd_run_state_machine(3, 0);
-    if (LOW == digitalRead(ncp_bb_con3_int_pin)) {
+      }
+      pd_run_state_machine(3, 0);
+      if (LOW == digitalRead(ncp_bb_con3_int_pin)) {
 //      DBGLOG(Info, "PM SRC 3 init pin LOW");
+      }
     }
   }
   delay(1);
@@ -305,7 +335,7 @@ void loop() {
 
 void pd_process_source_cap_callback(int port, int cnt, uint32_t *src_caps)
 {
-  DBGLOG(Info, "Port %d HIGH", port);
+  DBGLOG(Info, "Port %d HIGH cnt %d", port, cnt);
   if (port == 0) {
     pd_sink_port_ready = 1;
     pd_source_cap_max_index = cnt - 1;

@@ -483,9 +483,9 @@ static int fusb302_tcpm_set_cc(int port, int pull)
 	
 	/* NOTE: FUSB302 toggles a single pull-up between CC1 and CC2 */
 	/* NOTE: FUSB302 Does not support Ra. */
-  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
-  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
-  DBGLOG(Debug, "Port %d pulling_up %d pull %d", port, state[port].pulling_up, pull);
+//  DBGLOG(Debug, "Port %d vconn %d cc_polarity %d pulling_up %d pull %d", port, state[port].vconn_enabled, state[port].cc_polarity, state[port].pulling_up, pull);
+//  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
+//  DBGLOG(Debug, "Port %d pulling_up %d pull %d", port, state[port].pulling_up, pull);
 //  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
 	switch (pull) {
 	case TYPEC_CC_RP:
@@ -724,7 +724,7 @@ static int fusb302_tcpm_set_rx_enable(int port, int enable)
 //  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
 //  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
 //  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
-  DBGLOG(Debug, "Port %d rx_enable %d enable %d cc_polarity %d vconn_enabled %d", port, state[port].rx_enable, enable, state[port].cc_polarity, state[port].vconn_enabled);
+//  DBGLOG(Debug, "Port %d rx_enable %d enable %d cc_polarity %d vconn_enabled %d", port, state[port].rx_enable, enable, state[port].cc_polarity, state[port].vconn_enabled);
 
 	state[port].rx_enable = enable;
 	

@@ -305,7 +305,7 @@ int ncp81239_pmic_reset(int port) {
 
   int cc1 = 0, cc2 = 0;
   tcpm_get_cc(port, &cc1, &cc2);
-  DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+//  DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
 
   if (port == 2) {
     if (cc1 == 2 || cc2 == 2) {
