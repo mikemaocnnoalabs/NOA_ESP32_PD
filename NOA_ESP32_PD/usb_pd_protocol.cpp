@@ -2336,7 +2336,9 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SRC_DISCONNECTED_DEBOUNCE:
 		timeout = 20*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
-    CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
+    if (pd[port].last_state != pd[port].task_state) {
+      CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
+    }
 		if (cc1 == TYPEC_CC_VOLT_RD && cc2 == TYPEC_CC_VOLT_RD) {
 			/* Debug accessory */
 			new_cc_state = PD_CC_DEBUG_ACC;
@@ -2940,6 +2942,8 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SNK_DISCOVERY:
 		/* Wait for source cap expired only if we are enabled */
 		if ((pd[port].last_state != pd[port].task_state) && pd_comm_is_enabled(port)) {
+//      tcpm_get_cc(port, &cc1, &cc2);
+//      CPRINTF("C%d cc1 = %d cc2 = %d ", port, cc1, cc2);
 			/*
 				* If VBUS has never been low, and we timeout
 				* waiting for source cap, try a soft reset
@@ -2977,10 +2981,12 @@ void pd_run_state_machine(int port, int reset)
 			if (pd[port].last_state != PD_STATE_SNK_DISCONNECTED_DEBOUNCE)
 				typec_curr = 0;
 #endif
-		} else {
+		} 
+		else {
       tcpm_get_cc(port, &cc1, &cc2);
-      if (cc1 != TYPEC_CC_VOLT_OPEN || cc2 != TYPEC_CC_VOLT_OPEN) {
+      if ((cc1 == TYPEC_CC_VOLT_SNK_DEF || cc2 == TYPEC_CC_VOLT_SNK_DEF) && hard_reset_count[port] == PD_HARD_RESET_COUNT) {
         if (snk_is_hub == 0) {
+          CPRINTF("C%d cc1 = %d cc2 = %d snk_is_hub = %d", port, cc1, cc2, snk_is_hub);
           pd_process_source_cap_callback(port, 1, NULL);
           snk_is_hub = 1;
         }
