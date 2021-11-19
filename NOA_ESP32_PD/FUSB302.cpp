@@ -391,13 +391,13 @@ static int fusb302_tcpm_init(int port)
   state[port].rx_enable = -1;
 
 	/* set the voltage threshold for no connect detection (vOpen) */
- 	state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_VNC_MV);
+// 	state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_VNC_MV);
 //  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_VNC_MV);
-//  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_VNC_MV);
+  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_VNC_MV);
 	/* set the voltage threshold for Rd vs Ra detection */
- 	state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_RD_THRESH_MV);
+// 	state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_RD_THRESH_MV);
 //  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_RD_THRESH_MV);
-//  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_RD_THRESH_MV);
+  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_RD_THRESH_MV);
   
 	/* all other variables assumed to default to 0 */
 	
@@ -918,8 +918,8 @@ static int fusb302_tcpm_transmit(int port, enum tcpm_transmit_type type,
 		fusb302_tcpm_send_message(port, header, data, buf, buf_pos);
 	    // wait for the GoodCRC to come back before we let the rest
 	    // of the code do stuff like change polarity and miss it
-	    delayMicroseconds(1200);
-//      delayMicroseconds(600); // mike 20211018
+//	    delayMicroseconds(1200);   // mike 20211118
+      delayMicroseconds(600);
 	    return 0;
 	case TCPC_TX_HARD_RESET:
 		/* Simply hit the SEND_HARD_RESET bit */

@@ -99,14 +99,15 @@ timestamp_t get_time(void)
 
 void pd_power_supply_reset(int port)
 {
-  CPRINTF("Reset %d port Vbus Power", port);
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return;
   }
 
+ if (port == 2) {
+  CPRINTF("Reset %d port Vbus Power", port);
+  }
+  
   ncp81239_pmic_reset(port);
-//  ncp81239_pmic_init(port);   // save reset
-//  ncp81239_pmic_set_tatus(port);
   delay(4);
 	return;
 }
@@ -245,8 +246,8 @@ int pd_set_power_supply_ready(int port)
 	/* notify host of power info change */
 	pd_send_host_event(PD_EVENT_POWER_CHANGE);
 #endif // if 0
-  CPRINTF("Enable %d Port Vbus Power", port);
 #ifdef NOA_PD_SNACKER
+  CPRINTF("Enable %d Port Vbus Power", port);
   if(port != 1) {  // support 1 port only
     return EC_ERROR_UNKNOWN;
   }
@@ -257,6 +258,9 @@ int pd_set_power_supply_ready(int port)
       break;
   }
 #else
+  if (port == 2) {
+    CPRINTF("Enable %d Port Vbus Power", port);
+  }
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return EC_ERROR_UNKNOWN;
   }
