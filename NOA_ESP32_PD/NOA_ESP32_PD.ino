@@ -11,7 +11,7 @@
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.0.6"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.7"
+#define NOA_ESP32_PD_VERSION "0.1.0.8"
 #endif
 
 extern int const usb_pd_snk_sel_pin;
@@ -273,13 +273,13 @@ void loop() {
     if (pd_source_port_ready == 0) {
 //      delay(1000);
       pd_init(1); // init pd src 1
-//      delay(50);
+      delay(50);
 
       ncp81239_pmic_init(1);
       ncp81239_pmic_set_tatus(1);
 
       pd_init(2); // init pd src 2
-//      delay(50);
+      delay(50);
 
       int cc1 = 0, cc2 = 0;
       tcpm_get_cc(2, &cc1, &cc2);
@@ -294,7 +294,7 @@ void loop() {
       ncp81239_pmic_set_tatus(2);
   
       pd_init(3); // init pd src 3
-//      delay(50);
+      delay(50);
 
       ncp81239_pmic_init(3);
       ncp81239_pmic_set_tatus(3);
@@ -306,27 +306,18 @@ void loop() {
 //      DBGLOG(Info, "PD SRC 1 init pin LOW");
       }
       pd_run_state_machine(1, 0);
-      if (LOW == digitalRead(ncp_bb_con1_int_pin)) {
-//      DBGLOG(Info, "PM SRC 1 init pin LOW");
-      }
 
       if (LOW == digitalRead(usb_pd_src2_int_pin)) {
         tcpc_alert(2);
 //      DBGLOG(Info, "PD SRC 2 init pin LOW");
       }
       pd_run_state_machine(2, 0);
-      if (LOW == digitalRead(ncp_bb_con2_int_pin)) {
-//      DBGLOG(Info, "PM SRC 2 init pin LOW");      
-      }
     
       if (LOW == digitalRead(usb_pd_src3_int_pin)) {
         tcpc_alert(3);
 //      DBGLOG(Info, "PD SRC 3 init pin LOW");
       }
       pd_run_state_machine(3, 0);
-      if (LOW == digitalRead(ncp_bb_con3_int_pin)) {
-//      DBGLOG(Info, "PM SRC 3 init pin LOW");
-      }
     }
   }
   delay(1);

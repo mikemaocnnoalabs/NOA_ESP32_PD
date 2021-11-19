@@ -45,7 +45,7 @@ static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
-static const int debug_level = 3;
+static const int debug_level = 0;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -2074,6 +2074,7 @@ static int pd_restart_tcpc(int port)
 
 void pd_init(int port)
 {
+  CPRINTS("TCPC p%d init Begin..", port);
   enum pd_states this_state = PD_STATE_DISABLED;
   int res = 0;
 #ifdef CONFIG_COMMON_RUNTIME
@@ -2095,7 +2096,7 @@ void pd_init(int port)
 	//pd_partner_port_reset(port);
 #endif
 
-	CPRINTS("TCPC p%d init %d %s", port, res, res ? "failed" : "ready");
+	CPRINTS("TCPC p%d init res = %d %s", port, res, res ? "failed" : "ready");
 	this_state = res ? PD_STATE_SUSPENDED : PD_DEFAULT_STATE(port);
 #ifndef CONFIG_USB_PD_TCPC
 	if (!res) {
@@ -2422,8 +2423,10 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
     tcpm_get_cc(port, &cc1, &cc2);
-    CPRINTF("C%d SRC HARD RESET RECOVER cc1 = %d cc2 = %d flag = %d polarity %d", port, cc1, cc2, pd[port].flags, pd[port].polarity);
-#ifndef NOA_PD_SNACKER    
+    if (port == 2) {
+      CPRINTF("Time %ld, C%d SRC HARD RESET RECOVER cc1 = %d cc2 = %d flag = %d polarity %d", millis()/1000, port, cc1, cc2, pd[port].flags, pd[port].polarity);
+    }
+/* #ifndef NOA_PD_SNACKER
     if (cc1 == 2 && cc2 == 2 && (port == 2)) {// fix up port(p0 C2) issue, can't fixed normal usb disk/hub issue
       if (pd[port].polarity == 0) {
         pd[port].polarity = 1;
@@ -2440,7 +2443,7 @@ void pd_run_state_machine(int port, int reset)
       }
       tcpm_set_polarity(port, pd[port].polarity);
     }
-#endif
+#endif */
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 		/*
 			* After transmitting hard reset, TCPM writes
@@ -3425,11 +3428,12 @@ void pd_run_state_machine(int port, int reset)
 	if (pd[port].power_role == PD_ROLE_SOURCE) {
 		/* Source: detect disconnect by monitoring CC */
 		tcpm_get_cc(port, &cc1, &cc2);
-//    CPRINTF("C%d SRC cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
 		if (pd[port].polarity) {
+      CPRINTF("Warning! C%d SRC changed cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
 			cc1 = cc2;
 		}
 		if (cc1 == TYPEC_CC_VOLT_OPEN) {
+      CPRINTF("Warning! Time %ld, C%d SRC Disconected, cc1 = %d cc2 = %d, polarity = %d", millis()/1000, port, cc1, cc2, pd[port].polarity);
 			set_state(port, PD_STATE_SRC_DISCONNECTED);
 			/* Debouncing */
 			timeout = 10*MSEC_US;

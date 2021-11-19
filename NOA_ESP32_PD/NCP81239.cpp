@@ -111,7 +111,7 @@ int     ncp81239_pmic_init(int port) {
       g_stPMICData[port].b1CR00EnPup = 0x01;  // en_pup=1, en_pol=0: A high on the enable pin generated a turn on the pull up current ensure the parts starts immediately
       g_stPMICData[port].b1CR00EnMask = 0x01; // en_mask=1, en_int=1: turn on part
       g_stPMICData[port].b1CR00EnInternal = 0x01;
-      DBGLOG(Info, "Danger Key Port %d VBus is up to %dV", port, 0x96/10);
+      DBGLOG(Info, "Warning! Init Port %d VBus to %dV", port, 0x96/10);
       g_stPMICData[port].ucCR01DacTarget = 0x96;  // set port2 default voltage to 15V, not save for device
     }
   }
@@ -275,7 +275,7 @@ int ncp81239_pmic_set_voltage(int port) {
         g_stPMICData[port].b1CR00EnPup = 0x01;  // en_pup=1, en_pol=0: A high on the enable pin generated a turn on the pull up current ensure the parts starts immediately
         g_stPMICData[port].b1CR00EnMask = 0x01; // en_mask=1, en_int=1: turn on part
         g_stPMICData[port].b1CR00EnInternal = 0x01;
-        DBGLOG(Info, "Danger Port %d VBus is up to %dV", port, 0x96/10);
+        DBGLOG(Info, "Warning! Port %d VBus is up to %dV", port, 0x96/10);
         NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 1);
       }
       NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
@@ -286,7 +286,6 @@ int ncp81239_pmic_set_voltage(int port) {
   }
 //  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port].ucCR01DacTarget), 1);
 //  NOA_PUB_I2C_SetReg(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, g_stPMICData[port].ucCR01DacTarget);
-  
   return ucResult;
 }
 
@@ -301,16 +300,24 @@ int ncp81239_pmic_reset(int port) {
   g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
 //  g_stPMICData[port].b4CR00Reserved = g_stPmicInitialData.b4CR00Reserved;
 
-  g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
-
   int cc1 = 0, cc2 = 0;
   tcpm_get_cc(port, &cc1, &cc2);
 //  DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
 
   if (port == 2) {
-    if (cc1 == 2 || cc2 == 2) {
-//      g_stPMICData[port].ucCR01DacTarget = 0x96;  // set port2 to 15V for defaul
+    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+    if ((cc1 == 2 || cc2 == 2) && g_stPMICData[port].ucCR01DacTarget == 0x96) {
+      g_stPMICData[port].b1CR00EnPol = 0x00;
+      g_stPMICData[port].b1CR00EnPup = 0x01;  // en_pup=1, en_pol=0: A high on the enable pin generated a turn on the pull up current ensure the parts starts immediately
+      g_stPMICData[port].b1CR00EnMask = 0x01; // en_mask=1, en_int=1: turn on part
+      g_stPMICData[port].b1CR00EnInternal = 0x01;
+      DBGLOG(Info, "Warning! Keep Port %d VBus to %dV", port, 0x96/10);
+      g_stPMICData[port].ucCR01DacTarget = 0x96;  // set port2 default voltage to 15V, not save for device
+    } else {
+      g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
     }
+  } else {
+    g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
   }
 
 //  g_stPMICData[port].b2CR02SlewRate =  g_stPmicInitialData.b2CR02SlewRate;
