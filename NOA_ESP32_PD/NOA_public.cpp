@@ -12,6 +12,40 @@ uint8_t tx_buf[80] = {0};
 uint8_t rx_buf[80] = {0};
 uint8_t temp_buf[80] = {0};
 
+#define MAX_UART_BUFFER_SIZE  256
+uint8_t uart_rx_buf[MAX_UART_BUFFER_SIZE] = {0};
+
+#define SIZE_OF_UARTINPUT_STACK  SIZE_OF_STACK * 2
+TaskHandle_t UART_Input_Task = NULL;
+StaticTask_t xTaskBuffer_UartInput;
+StackType_t xStack_UartInput[SIZE_OF_UARTINPUT_STACK];
+
+// xQueueHandle uart_input_task_xqueue = NULL;
+
+// UART_Input_Task_Loop: UART input
+void UART_Input_Task_Loop( void * pvParameters ){
+  DBGLOG(Info, "UART_Input_Task_Loop running on core %d", xPortGetCoreID());
+  uint16_t nNumbers = 0;
+  int nTemp_i = 0;
+  Serial.setRxBufferSize((size_t)MAX_UART_BUFFER_SIZE);
+  while(true){
+//    len = Serial.available()
+    if (Serial.available() > 0){ // Uart data is incoming
+      memset(uart_rx_buf, '\0', MAX_UART_BUFFER_SIZE);
+      nNumbers = Serial.read(uart_rx_buf, (size_t)MAX_UART_BUFFER_SIZE); // Read Serial data、
+      for(nTemp_i = 0; nTemp_i < nNumbers; nTemp_i++) { // Echo
+        Serial.printf("%02X", uart_rx_buf[nTemp_i]);
+      }
+      if (nNumbers != 0) {
+        Serial.println("");
+      }
+    }
+    vTaskDelay(500);
+  }
+  DBGLOG(Info, "UART_Input_Task_Loop Exit from core %d", xPortGetCoreID());
+  vTaskDelete(NULL);
+}
+
 void NOA_PUB_ESP32DebugInit() {
   // Initialize debugging with timestamp since start (start = 0) 
   DBGINI(&Serial, ESP32Timestamp::TimestampNone)
@@ -34,6 +68,36 @@ void NOA_PUB_ESP32DebugInit() {
   // Activate debugging again
   DBGSTA
 //  DBGLOG(Info, "End of Debug LOG setup.")
+
+  UART_Input_Task = xTaskCreateStaticPinnedToCore(
+                   UART_Input_Task_Loop,        // Function that implements the task.
+                   "UARTInputTask",             // Text name for the task.
+                   SIZE_OF_UARTINPUT_STACK,     // Stack size in bytes, not words.
+                   NULL,                        // Parameter passed into the task.
+                   tskIDLE_PRIORITY + 1,        // Priority at which the task is created.
+                   xStack_UartInput,            // Array to use as the task's stack.
+                   &xTaskBuffer_UartInput,      // Variable to hold the task's data structure.
+                   ARDUINO_RUNNING_CORE);
+  if (UART_Input_Task == NULL || &xTaskBuffer_UartInput == NULL) {
+    DBGLOG(Error, "Create UART_Input_Task fail");
+  }
+/*  xTaskCreate(UART_Input_Task_Loop, "UARTInputTask", SIZE_OF_UARTINPUT_STACK, NULL, tskIDLE_PRIORITY + 1, &UART_Input_Task);
+  if (UART_Input_Task == NULL) {
+    DBGLOG(Error, "Create UART_Input_Task fail");
+  } */
+}
+
+/* Prints out len bytes of hex data in table format. */
+void NOA_PUB_Print_Buf_Hex(uint8_t *buf, uint16_t len) {
+  for (uint16_t i = 0; i < len; i++) {
+    Serial.print("0x");
+    if (buf[i] < 16) {
+      Serial.print("0");
+    }
+    Serial.print(buf[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println(" ");
 }
 
 void NOA_PUB_I2C_Scanner(uint8_t nIndex){
@@ -311,8 +375,9 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t nIndex, uint8_t PD_ADDR) {
   NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, 1);
   if (rx_buf[0] != 0xE0) {
     // implement other features later
-    Serial.print("FAIL: 0x");
-    Serial.println(rx_buf[0], HEX);
+//    Serial.print("FAIL: 0x");
+    //Serial.println(rx_buf[0], HEX);
+    Serial.printf("FAIL: 0x%02X\r\n", rx_buf[0]);
     return false;
   }
 
@@ -325,32 +390,41 @@ bool NOA_PUB_I2C_PD_ReceivePacket(uint8_t nIndex, uint8_t PD_ADDR) {
   port_data_role   = ((rx_buf[0] & 0x10) >> 5);
   message_type     = (rx_buf[0] & 0x0F);
   Serial.println("Received SOP Packet");
-  Serial.print("Header: 0x");
-  Serial.println(*(int *)rx_buf, HEX);
-  Serial.print("num_data_objects = ");
-  Serial.println(num_data_objects, DEC);
-  Serial.print("message_id       = ");
-  Serial.println(message_id, DEC);
-  Serial.print("port_power_role  = ");
-  Serial.println(port_power_role, DEC);
-  Serial.print("spec_rev         = ");
-  Serial.println(spec_rev, DEC);
-  Serial.print("port_data_role   = ");
-  Serial.println(port_data_role, DEC);
-  Serial.print("message_type     = ");
-  Serial.println(message_type, DEC);
+//  Serial.print("Header: 0x");
+//  Serial.println(*(int *)rx_buf, HEX);
+  Serial.printf("Header: 0x%02X 0x%02X\r\n", rx_buf[0], rx_buf[1]);
+//  Serial.print("num_data_objects = ");
+//  Serial.println(num_data_objects, DEC);
+  Serial.printf("num_data_objects = %d\r\n", num_data_objects);
+//  Serial.print("message_id       = ");
+//  Serial.println(message_id, DEC);
+  Serial.printf("message_id       = %d\r\n", message_id);
+//  Serial.print("port_power_role  = ");
+//  Serial.println(port_power_role, DEC);
+  Serial.printf("port_power_role  = %d\r\n", port_power_role);
+//  Serial.print("spec_rev         = ");
+//  Serial.println(spec_rev, DEC);
+  Serial.printf("spec_rev         = %d\r\n", spec_rev);
+//  Serial.print("port_data_role   = ");
+//  Serial.println(port_data_role, DEC);
+  Serial.printf("port_data_role   = %d\r\n", port_data_role);
+//  Serial.print("message_type     = ");
+//  Serial.println(message_type, DEC);
+  Serial.printf("message_type     = %d\r\n", message_type);
 
   NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, (num_data_objects*4));
   // each data object is 32 bits
   for (uint8_t i=0; i<num_data_objects; i++) {
-    Serial.print("Object: 0x");
-    Serial.println(*(long *)(rx_buf+(i*4)), HEX);
+//    Serial.print("Object: 0x");
+//    Serial.println(*(long *)(rx_buf+(i*4)), HEX);
+    Serial.printf("Object: 0x%02X 0x%02X 0x%02X 0x%02X\r\n", rx_buf[i * 4], rx_buf[i * 4 + 1], rx_buf[i * 4 + 2], rx_buf[i * 4 + 3]);
   }  
 
   // CRC-32
   NOA_PUB_I2C_ReceiveBytes(nIndex, PD_ADDR, 0x43, rx_buf, 4);
-  Serial.print("CRC-32: 0x");
-  Serial.println(*(long *)rx_buf, HEX);
+//  Serial.print("CRC-32: 0x");
+//  Serial.println(*(long *)rx_buf, HEX);
+  Serial.printf("CRC-32: 0x%02X 0x%02X 0x%02X 0x%02X\r\n", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
   Serial.println();
 
   return true;

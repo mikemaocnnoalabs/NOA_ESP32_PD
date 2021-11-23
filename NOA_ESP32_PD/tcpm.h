@@ -15,7 +15,12 @@ extern "C" {
 #include "tcpm_driver.h"
 #include "usb_pd_tcpm.h"
 
-// #define NOA_PD_SNACKER
+#define NOA_PD_SNACKER
+
+#ifdef NOA_PD_SNACKER
+#define  NOA_PD_SKYSET
+#endif
+
 #ifndef NOA_PD_SNACKER
 #define NOA_PD_STATION
 #endif
