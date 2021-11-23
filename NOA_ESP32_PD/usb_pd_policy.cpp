@@ -21,7 +21,7 @@
 extern int pd_source_cap_current_index;
 extern int pd_source_cap_max_index;
 
-static int rw_flash_changed = 1;
+// static int rw_flash_changed = 1;
 
 /* Last received source cap */
 static uint32_t pd_src_caps[CONFIG_USB_PD_PORT_COUNT][PDO_MAX_OBJECTS];

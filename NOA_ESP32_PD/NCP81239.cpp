@@ -1,5 +1,5 @@
 /*
-  NCP81239.h - Library for interacting with the NCP81239 chip.
+  NCP81239.cpp - Library for interacting with the NCP81239 chip.
   Copyright 2021 NOA
   Copyright 2021 Mike mao
   Released under an MIT license. See LICENSE file. 
@@ -100,7 +100,20 @@ StructNCP81239RegisterMap g_stPmicInitialData =
 StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
 
 int     ncp81239_pmic_init(int port) {
-  g_stPMICData[port] = g_stPmicInitialData;
+  g_stPMICData[port] = g_stPmicInitialData;  
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  if (port == 1) {
+    int cc1 = 0, cc2 = 0;
+    tcpm_get_cc(port, &cc1, &cc2);
+    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+  }
+#else
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
   int cc1 = 0, cc2 = 0;
   tcpm_get_cc(port, &cc1, &cc2);
   DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
@@ -164,11 +177,25 @@ int     ncp81239_pmic_init(int port) {
   DBGLOG(Info, "INIT:Vchn Flag %d", g_stPMICData[port].b1CR14IntVchnFlag);
   DBGLOG(Info, "INIT:IIC ACK Flag %d", g_stPMICData[port].b1CR14IntI2cAckFlag);
   DBGLOG(Info, "INIT:Shut Down Flag %d", g_stPMICData[port].b1CR15IntShutDownFlag); */
+#endif
   return 0;
 }
 
 int ncp81239_pmic_get_tatus(int port) {
   uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  switch (port) {
+    case 1: // SRC
+      NOA_PUB_I2C_ReceiveBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6); 
+      break;
+    case 2: // Wireless charger
+      NOA_PUB_I2C_ReceiveBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6); 
+      break;
+  }
+#else
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
   }
@@ -222,7 +249,7 @@ int ncp81239_pmic_get_tatus(int port) {
       NOA_PUB_I2C_ReceiveBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG10, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG10, 6);
       break;
   }
-
+#endif
   DBGLOG(Info, "Pmic:VFB Value %d", g_stPMICData[port].ucCR10VfbValue);
   DBGLOG(Info, "Pmic:Vin Value %d", g_stPMICData[port].ucCR11VinValue);
   DBGLOG(Info, "Pmic:CS2 Value %d", g_stPMICData[port].ucCR12Cs2Value);
@@ -241,6 +268,19 @@ int ncp81239_pmic_get_tatus(int port) {
 
 int ncp81239_pmic_set_tatus(int port) {
   uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
+      break;
+    case 2:
+      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
+      break;
+  }
+#else
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
   }
@@ -255,12 +295,25 @@ int ncp81239_pmic_set_tatus(int port) {
       NOA_PUB_I2C_SendBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG00, (uint8_t *)(&g_stPMICData[port]), 11);
       break;
   }
-
+#endif
   return ucResult;
 }
 
 int ncp81239_pmic_set_voltage(int port) {
   uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1); 
+      break;
+    case 2:
+      NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+  }
+#else
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
   }
@@ -286,11 +339,35 @@ int ncp81239_pmic_set_voltage(int port) {
   }
 //  NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port].ucCR01DacTarget), 1);
 //  NOA_PUB_I2C_SetReg(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, g_stPMICData[port].ucCR01DacTarget);
+#endif
   return ucResult;
 }
 
 int ncp81239_pmic_reset(int port) {
   uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  g_stPMICData[port].b1CR00EnPol = g_stPmicInitialData.b1CR00EnPol;
+  g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
+  g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
+  g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
+
+  g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
+
+  g_stPMICData[port].b2CR05OcpClimPos = g_stPmicInitialData.b2CR05OcpClimPos;
+  g_stPMICData[port].b2CR05OcpClimNeg = g_stPmicInitialData.b2CR05OcpClimNeg;
+  
+  g_stPMICData[port].b2CR06Cs1Clind = g_stPmicInitialData.b2CR06Cs1Clind;
+  g_stPMICData[port].b2CR06Cs2Clind = g_stPmicInitialData.b2CR06Cs2Clind;
+
+  if (port == 1) {
+    int cc1 = 0, cc2 = 0;
+    tcpm_get_cc(port, &cc1, &cc2);
+    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+  }
+#else
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
   }
@@ -366,6 +443,6 @@ int ncp81239_pmic_reset(int port) {
   
 //  g_stPMICData[port].b1CR0AIntMaskShutDown = g_stPmicInitialData.b1CR0AIntMaskShutDown;
 //  g_stPMICData[port].b7CR0AReserved = g_stPmicInitialData.b7CR0AReserved;
-
+#endif
   return ucResult;
 }

@@ -1562,7 +1562,7 @@ static void handle_request(int port, uint16_t head,
 {
 	int cnt = PD_HEADER_CNT(head);
   int type = PD_HEADER_TYPE(head);
-	int p = 0;
+//	int p = 0;
   if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
     CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
   }
@@ -2423,27 +2423,12 @@ void pd_run_state_machine(int port, int reset)
 			break;
 		}
     tcpm_get_cc(port, &cc1, &cc2);
+#ifndef NOA_PD_SNACKER
     if (port == 2) {
       CPRINTF("Time %ld, C%d SRC HARD RESET RECOVER cc1 = %d cc2 = %d flag = %d polarity %d", millis()/1000, port, cc1, cc2, pd[port].flags, pd[port].polarity);
     }
-/* #ifndef NOA_PD_SNACKER
-    if (cc1 == 2 && cc2 == 2 && (port == 2)) {// fix up port(p0 C2) issue, can't fixed normal usb disk/hub issue
-      if (pd[port].polarity == 0) {
-        pd[port].polarity = 1;
-      } else {
-        pd[port].polarity = 0;
-      }
-      tcpm_set_polarity(port, pd[port].polarity);
-    }
-    if (cc1 == 1 && cc2 == 1 && (port == 1)) {// debug fix up port(p1 C1) issue, can't fixed normal usb disk/hub issue
-      if (pd[port].polarity == 0) {
-        pd[port].polarity = 1;
-      } else {
-        pd[port].polarity = 0;
-      }
-      tcpm_set_polarity(port, pd[port].polarity);
-    }
-#endif */
+#endif
+
 #ifdef CONFIG_USB_PD_TCPM_TCPCI
 		/*
 			* After transmitting hard reset, TCPM writes
