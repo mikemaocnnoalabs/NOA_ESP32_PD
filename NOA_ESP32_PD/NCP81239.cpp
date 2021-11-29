@@ -365,7 +365,7 @@ int ncp81239_pmic_reset(int port) {
   if (port == 1) {
     int cc1 = 0, cc2 = 0;
     tcpm_get_cc(port, &cc1, &cc2);
-    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
+//    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
   }
 #else
   if(port < 1 || port > 3) {  // support 1 - 3 port only

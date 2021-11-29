@@ -247,7 +247,7 @@ int pd_set_power_supply_ready(int port)
 	pd_send_host_event(PD_EVENT_POWER_CHANGE);
 #endif // if 0
 #ifdef NOA_PD_SNACKER
-  CPRINTF("Enable %d Port Vbus Power", port);
+//  CPRINTF("Enable %d Port Vbus Power", port);
   if(port != 1) {  // support 1 port only
     return EC_ERROR_UNKNOWN;
   }

@@ -1,44 +1,41 @@
 /*
-  MFRC630.cpp - Library for interacting with the MFRC630 chip.
+  NOA_NFC.cpp - Library for interacting with the NFC chip.
   Copyright 2021 NOA
   Copyright 2021 Mike mao
   Released under an MIT license. See LICENSE file. 
 */
 #include <Wire.h>
 #include <Esp.h>
-#include <Adafruit_MFRC630.h>
 
+#include "Adafruit_OM9663.h"
 #include "usb_pd.h"
-#include "MFRC630.h"
+#include "NOA_NFC.h"
 #include "NOA_App.h"
 #include "NOA_public.h"
 
-#define MOJIC_TRICK       (0)
-// const uint8_t OM966302_NFC_ADDR = 0x29;
+// extern int const nxp_om9663_nfc_pdown_pin;
+// Adafruit_OM9663 rfid_nfc = Adafruit_OM9663(1, OM9663_I2C_ADDR, nxp_om9663_nfc_pdown_pin);
+extern Adafruit_OM9663 rfid_nfc;
 
-// const int mfrc_630_nfc_int_pin = 5;  // init pin for NFC
-// const int mfrc_630_nfc_pdown_pin = 4;  // init pin for NFC
-// Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_I2C_ADDR, mfrc_630_nfc_pdown_pin);
-// Adafruit_MFRC630 rfid_nfc = Adafruit_MFRC630(&Wire1, 0x29, mfrc_630_nfc_pdown_pin);
-extern Adafruit_MFRC630 rfid_nfc;
+/* #define SIZE_OF_NFC_STACK  SIZE_OF_STACK * 4
 
-TaskHandle_t MFRC630_NFC_Task = NULL;
+TaskHandle_t NOA_NFC_Task = NULL;
 // xQueueHandle NOA_NFC_TASK = NULL;
 StaticTask_t xTaskBuffer_NFC;
-StackType_t xStack_NFC[SIZE_OF_STACK] = {0};
+StackType_t xStack_NFC[SIZE_OF_NFC_STACK] = {0};
 
-TaskHandle_t MFRC630_NFC_Test_Task = NULL;
+TaskHandle_t NOA_NFC_Test_Task = NULL;
 static int nStatus_NFC_Testing = 0;
 StaticTask_t xTaskBuffer_NFC_Test;
-StackType_t xStack_NFC_Test[SIZE_OF_STACK] = {0};
+StackType_t xStack_NFC_Test[SIZE_OF_NFC_STACK] = {0}; */
 
 /* This functions sends a command to fill the FIFO with random numbers and */
 /* then reads the entire FIFO contents in 16 byte chunks */
-void MFRC630_fifo_read_test(void) {
+void OM9663_fifo_read_test(void) {
   DBGLOG(Debug, "Reading randomly generated numbers from FIFO buffer");
 
   /* Generate random numbers into the FIFO */
-  rfid_nfc.writeCommand(MFRC630_CMD_READRNR);
+  rfid_nfc.writeCommand(OM9663_CMD_READRNR);
   /* Note, this command requires a 10ms delay to fill the buffer! */
   vTaskDelay(10);
 
@@ -55,7 +52,7 @@ void MFRC630_fifo_read_test(void) {
 }
 
 /* This function writes data to the FIFO and then tries to read it back */
-void MFRC630_fifo_write_test(void) {
+void OM9663_fifo_write_test(void) {
   uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
   /* Write data into the FIFO buffer */
@@ -70,7 +67,7 @@ void MFRC630_fifo_write_test(void) {
 }
 
 /* This function clears the FIFO contents */
-void MFRC630_fifo_clear_test(void) {
+void OM9663_fifo_clear_test(void) {
   uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
   /* Write data into the FIFO buffer */
@@ -88,27 +85,27 @@ void MFRC630_fifo_clear_test(void) {
 }
 
 /* This function displays the status of the MFRC's state machine */
-void status_test(void) {
-  DBGLOG(Debug, "Reading COM Status");
+void OM9663_status_test(void) {
+//  DBGLOG(Debug, "Reading COM Status");
   uint8_t stat = rfid_nfc.getComStatus();
 
   switch (stat) {
-    case MFRC630_COMSTAT_IDLE:
-      Serial.println("IDLE");
+    case OM9663_COMSTAT_IDLE:
+//      Serial.println("IDLE");
       break;
-    case MFRC630_COMSTAT_TXWAIT:
+    case OM9663_COMSTAT_TXWAIT:
       Serial.println("TX WAIT");
       break;
-    case MFRC630_COMSTAT_TRANSMITTING:
+    case OM9663_COMSTAT_TRANSMITTING:
       Serial.println("TRANSMITTING");
       break;
-    case MFRC630_COMSTAT_RXWAIT:
+    case OM9663_COMSTAT_RXWAIT:
       Serial.println("RX WAIT");
       break;
-    case MFRC630_COMSTAT_WAITFORDATA :
+    case OM9663_COMSTAT_WAITFORDATA :
       Serial.println("WAITING FOR DATA");
       break;
-    case MFRC630_COMSTAT_RECEIVING:
+    case OM9663_COMSTAT_RECEIVING:
       Serial.println("RECEIVING");
       break;
     default:
@@ -126,9 +123,6 @@ void radio_mifare_dump_sector(uint8_t sector_num) {
     if (len == 0) {
       /* No data returned! */
       DBGLOG(Debug, "What!?! No data returned for block %d!", sector_num * 4 + b);
-      #if MOJIC_TRICK
-      Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
-      #endif
       return;
     } else {
       /* Display the block contents. */
@@ -142,9 +136,6 @@ void radio_mifare_dump_sector(uint8_t sector_num) {
 void radio_mifare_read(uint8_t *uid, uint8_t uidlen) {
   if (uidlen != 4) {
     DBGLOG(Debug, "Not a Mifare tag!");
-    #if MOJIC_TRICK
-    Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
-    #endif
     return;
   }
   /* Use the default key for fresh Mifare cards. */
@@ -156,9 +147,6 @@ void radio_mifare_read(uint8_t *uid, uint8_t uidlen) {
     DBGLOG(Debug, "Trying to authenticate sector %d with KEYA.", s);
     /* Authenticate. */
     if(rfid_nfc.mifareAuth(MIFARE_CMD_AUTH_A, s*4, uid)) {
-      #if MOJIC_TRICK
-      Serial.println(" ᕙ(`▽´)ᕗ");
-      #endif
       /* Dump the first sector. */
       radio_mifare_dump_sector(s);
     } else {
@@ -172,23 +160,17 @@ void radio_mifare_read(uint8_t *uid, uint8_t uidlen) {
         Serial.print(" ");
       }
       Serial.println("");
-      #if MOJIC_TRICK
-      Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
-      #endif
     }
   }
 }
 
 /* Configure the radio for ISO14443A-106 type tags and scan for the UID. */
 void radio_iso1443A_106_scan() {
-  DBGLOG(Debug, "Configuring radio for ISO14443A-106 tags");
-  rfid_nfc.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+//  DBGLOG(Debug, "Configuring radio for ISO14443A-106 tags");
+  rfid_nfc.configRadio(OM9663_RADIOCFG_ISO1443A_106);
 
   /* Request a tag */
-  DBGLOG(Debug, "Checking for ISO14443A-106 tags");
-  #if MOJIC_TRICK
-  Serial.println("┬─┬ ノ( ゜-゜ノ)");
-  #endif
+//  DBGLOG(Debug, "Checking for ISO14443A-106 tags");
   uint16_t atqa = rfid_nfc.iso14443aRequest();
   /* Select the tag if we found something */
   if (atqa) {
@@ -196,14 +178,7 @@ void radio_iso1443A_106_scan() {
     uint8_t uidlen;
     uint8_t sak;
     DBGLOG(Debug, "Found ISO14443A-106 tag with ATQA 0x%02X", atqa);
-    #if MOJIC_TRICK
-    Serial.println("ᕙ(`▽´)ᕗ");
-    #endif
-
     DBGLOG(Debug, "Selecting the tag");
-    #if MOJIC_TRICK
-    Serial.println("(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧");
-    #endif
     uidlen = rfid_nfc.iso14443aSelect(uid, &sak);
     if (uidlen) {
       Serial.print("Got a UID! --> ");
@@ -212,22 +187,13 @@ void radio_iso1443A_106_scan() {
         Serial.print(" ");
       }
       Serial.println("");
-      #if MOJIC_TRICK
-      Serial.println("ᕙ(`▽´)ᕗ");
-      #endif
       /* Try to read and dump the card's contents. */
       radio_mifare_read(uid, uidlen);
     } else {
       DBGLOG(Debug, "What, no UID found! Did someone steal my tag!!");
-      #if MOJIC_TRICK
-      Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
-      #endif
     }
   } else {
-    DBGLOG(Debug, "No ISO14443A-106 tag found!");
-    #if MOJIC_TRICK
-    Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
-    #endif
+//    DBGLOG(Debug, "No ISO14443A-106 tag found!");
   }
 }
 
@@ -236,7 +202,7 @@ bool radio_ntag156b_write(void) {
   /* Put the IC in a known-state. */
   rfid_nfc.softReset();
   /* Configure the radio for ISO14443A-106. */
-  rfid_nfc.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+  rfid_nfc.configRadio(OM9663_RADIOCFG_ISO1443A_106);
   /* Request a tag (activates the near field, etc.). */
   uint16_t atqa = rfid_nfc.iso14443aRequest();
   /* Looks like we found a tag, move on to selection. */
@@ -285,11 +251,11 @@ bool radio_ntag156b_write(void) {
  * starting point for further work.
  */
 bool radio_ntag156b_dump_minimal(void) {
-  bool rc;
+  bool rc = false;
   /* Put the IC in a known-state. */
   rfid_nfc.softReset();
   /* Configure the radio for ISO14443A-106. */
-  rfid_nfc.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+  rfid_nfc.configRadio(OM9663_RADIOCFG_ISO1443A_106);
   /* Request a tag (activates the near field, etc.). */
   uint16_t atqa = rfid_nfc.iso14443aRequest();
   /* Looks like we found a tag, move on to selection. */
@@ -346,7 +312,7 @@ bool radio_mifare1K_dump_minimal(void) {
   // Put the IC in a known-state.
   rfid_nfc.softReset();
   // Configure the radio for ISO14443A-106.
-  rfid_nfc.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+  rfid_nfc.configRadio(OM9663_RADIOCFG_ISO1443A_106);
   // Request a tag (activates the near field, etc.).
   uint16_t atqa = rfid_nfc.iso14443aRequest();
   /* Looks like we found a tag, move on to selection. */
@@ -393,24 +359,25 @@ bool radio_mifare1K_dump_minimal(void) {
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
-void MFRC630_NFC_Test_Task_Loop( void * pvParameters ){
-  DBGLOG(Info, "MFRC630_NFC_Test_Task_Loop running on core %d", xPortGetCoreID());
+/* void NOA_NFC_Test_Task_Loop( void * pvParameters ){
+  DBGLOG(Info, "NOA_NFC_Test_Task_Loop running on core %d", xPortGetCoreID());
   if (!(rfid_nfc.begin())) {
-    DBGLOG(Info,"Unable to initialize the MFRC630. Check wiring?");
+    DBGLOG(Info,"Unable to initialize the OM9663. Check wiring?");
     nStatus_NFC_Testing = 0;
   } else {
     nStatus_NFC_Testing = 1;
   }
-  /* FIFO tests */
+//  nStatus_NFC_Testing = 1;
+  // FIFO tests
 //  fifo_read_test();
 //  fifo_write_test();
 //  fifo_clear_test();
-  /* General HW tests */
+  // General HW tests 
 //  status_test();
-  /* Radio tests */
+  // Radio tests 
 //  radio_iso1443A_106_scan();  
 
-  DBGLOG(Info, "MFRC630_NFC_Test_Task_Loop Exit from core %d", xPortGetCoreID());
+  DBGLOG(Info, "NOA_NFC_Test_Task_Loop Exit from core %d", xPortGetCoreID());
 
 //  uint32_t msg = 0;
   NOA_PUB_MSG msg;
@@ -426,9 +393,9 @@ void MFRC630_NFC_Test_Task_Loop( void * pvParameters ){
   vTaskDelete(NULL);
 }
 
-// MFRC630_NFC_Task_Loop: NFC task loop
-/* void MFRC630_NFC_Task_Loop( void * pvParameters ){
-  DBGLOG(Info, "MFRC630_NFC_Task_Loop running on core %d", xPortGetCoreID());
+// NOA_NFC_Task_Loop: NFC task loop
+ void NOA_NFC_Task_Loop( void * pvParameters ){
+  DBGLOG(Info, "NOA_NFC_Task_Loop running on core %d", xPortGetCoreID());
   const TickType_t xTicksToWait = pdMS_TO_TICKS(50);
   BaseType_t xStatus = 0;
   NOA_PUB_MSG msg;
@@ -437,7 +404,7 @@ void MFRC630_NFC_Test_Task_Loop( void * pvParameters ){
     xStatus = xQueueReceive(NOA_NFC_TASK, &msg, xTicksToWait);  //Get message from the queue
 //    xStatus = xQueueReceive(NOA_NFC_TASK, &msg, portMAX_DELAY);
     if (xStatus == pdPASS) {
-//      DBGLOG(Info, "MFRC630_NFC_Task_Loop get a message %d QueueSpaces %d", msg.message, uxQueueSpacesAvailable(NOA_NFC_TASK));
+//      DBGLOG(Info, "NOA_NFC_Task_Loop get a message %d QueueSpaces %d", msg.message, uxQueueSpacesAvailable(NOA_NFC_TASK));
     }
     switch(msg.message) {
       case NFC_MSG_READY:
@@ -454,12 +421,12 @@ void MFRC630_NFC_Test_Task_Loop( void * pvParameters ){
     }
     memset(&msg, 0, sizeof(NOA_NFC_TASK));
   }
-  DBGLOG(Info, "MFRC630_NFC_Task_Loop Exit from core %d", xPortGetCoreID());
+  DBGLOG(Info, "NOA_NFC_Task_Loop Exit from core %d", xPortGetCoreID());
   vTaskDelete(NULL);
 } */
 
-void MFRC630_NFC_Task_Loop( void * pvParameters ){
-  DBGLOG(Info, "MFRC630_NFC_Task_Loop running on core %d", xPortGetCoreID());
+/* void NOA_NFC_Task_Loop( void * pvParameters ){
+  DBGLOG(Info, "NOA_NFC_Task_Loop running on core %d", xPortGetCoreID());
   while(true){
 //    status_test();
 //    radio_iso1443A_106_scan();
@@ -468,45 +435,47 @@ void MFRC630_NFC_Task_Loop( void * pvParameters ){
     if (nStatus_NFC_Testing == 1) {
 //      radio_mifare1K_dump_minimal();
 //      status_test();
+      OM9663_status_test();
+      DBGLOG(Info, "%ld Heap %d/%d StackSize %ld", millis()/1000, ESP.getFreeHeap(), ESP.getHeapSize(), uxTaskGetStackHighWaterMark(NULL));
     }
     vTaskDelay(1000);
   }
-  DBGLOG(Info, "MFRC630_NFC_Task_Loop Exit from core %d", xPortGetCoreID());
+  DBGLOG(Info, "NOA_NFC_Task_Loop Exit from core %d", xPortGetCoreID());
   vTaskDelete(NULL);
 }
-void MFRC630_NFC_init() {
+void NOA_NFC_init() {
   nStatus_NFC_Testing = 0;
 
-/*  MFRC630_NFC_Test_Task = xTaskCreateStaticPinnedToCore(
-                   MFRC630_NFC_Test_Task_Loop,       // Function that implements the task.
-                   "MFRC630NFCTest",            // Text name for the task.
-                   SIZE_OF_STACK,               // Stack size in bytes, not words.
+  NOA_NFC_Test_Task = xTaskCreateStaticPinnedToCore(
+                   NOA_NFC_Test_Task_Loop,      // Function that implements the task.
+                   "NOANFCTest",                // Text name for the task.
+                   SIZE_OF_NFC_STACK,           // Stack size in bytes, not words.
                    NULL,                        // Parameter passed into the task.
                    tskIDLE_PRIORITY + 1,        // Priority at which the task is created.
                    xStack_NFC_Test,             // Array to use as the task's stack.
                    &xTaskBuffer_NFC_Test,       // Variable to hold the task's data structure.
                    ARDUINO_RUNNING_CORE);
                    
-  if (MFRC630_NFC_Test_Task == NULL || &xTaskBuffer_NFC_Test == NULL) {
-    DBGLOG(Error, "Create MFRC630_NFC_Test_Task fail");
+  if (NOA_NFC_Test_Task == NULL || &xTaskBuffer_NFC_Test == NULL) {
+    DBGLOG(Error, "Create NOA_NFC_Test_Task fail");
   }
 
-  NOA_NFC_TASK = xQueueCreate(SIZE_OF_TASK_QUEUE, sizeof(NOA_PUB_MSG));
-  if (NOA_NFC_TASK == NULL) {
-    DBGLOG(Error, "Create NOA_NFC_TASK fail");
-  } */
+  NOA_NFC_TASKQUEUE = xQueueCreate(SIZE_OF_TASK_QUEUE, sizeof(NOA_PUB_MSG));
+  if (NOA_NFC_TASKQUEUE == NULL) {
+    DBGLOG(Error, "Create NOA_NFC_TASKQUEUE fail");
+  }
 
-  MFRC630_NFC_Task = xTaskCreateStaticPinnedToCore(
-                   MFRC630_NFC_Task_Loop,   // Function that implements the task.
-                   "MFRC630NFCTask",        // Text name for the task.
-                   SIZE_OF_STACK,           // Stack size in bytes, not words.
+  NOA_NFC_Task = xTaskCreateStaticPinnedToCore(
+                   NOA_NFC_Task_Loop,       // Function that implements the task.
+                   "NOANFCTask",            // Text name for the task.
+                   SIZE_OF_NFC_STACK,       // Stack size in bytes, not words.
                    NULL,                    // Parameter passed into the task.
                    tskIDLE_PRIORITY + 1,    // Priority at which the task is created.
                    xStack_NFC,              // Array to use as the task's stack.
                    &xTaskBuffer_NFC,        // Variable to hold the task's data structure.
                    ARDUINO_RUNNING_CORE);
                    
-  if (MFRC630_NFC_Task == NULL || &xTaskBuffer_NFC == NULL) {
-    DBGLOG(Error, "Create MFRC630_NFC_Task fail");
+  if (NOA_NFC_Task == NULL || &xTaskBuffer_NFC == NULL) {
+    DBGLOG(Error, "Create NOA_NFC_Task fail");
   }
-}
+} */

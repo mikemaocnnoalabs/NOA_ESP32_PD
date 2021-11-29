@@ -126,7 +126,7 @@ void RGB_Light_Task_Loop( void * pvParameters ){
         toggle_status = !toggle_status;
         nStatus[0] = 1; // status for SNK
         nStatus[2] = 1; // status for Wireless
-        DBGLOG(Info, "RGB task APP_MSG_TIMER_ID StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
+//        DBGLOG(Info, "RGB task APP_MSG_TIMER_ID StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
         if (toggle_status == true) {
           NEO_Pixel_Status();
         } else {

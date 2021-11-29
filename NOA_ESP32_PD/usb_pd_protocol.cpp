@@ -2975,7 +2975,9 @@ void pd_run_state_machine(int port, int reset)
       if ((cc1 == TYPEC_CC_VOLT_SNK_DEF || cc2 == TYPEC_CC_VOLT_SNK_DEF) && hard_reset_count[port] == PD_HARD_RESET_COUNT) {
         if (snk_is_hub == 0) {
           CPRINTF("C%d cc1 = %d cc2 = %d snk_is_hub = %d", port, cc1, cc2, snk_is_hub);
-          pd_process_source_cap_callback(port, 1, NULL);
+          uint32_t hub_valtage = 5;
+//          pd_process_source_cap_callback(port, 1, NULL);
+          pd_process_source_cap_callback(port, 1, &hub_valtage);
           snk_is_hub = 1;
         }
       }

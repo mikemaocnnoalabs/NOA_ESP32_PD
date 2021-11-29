@@ -288,6 +288,35 @@ void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR) {
   Serial.println();
 }
 
+void NOA_PUB_I2C_NFC_RreadAllRegs(uint8_t nIndex, uint8_t NFC_ADDR) {
+  if (nIndex == 0) {
+    Wire.beginTransmission(NFC_ADDR);
+    Wire.write(0x28);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)NFC_ADDR, (uint8_t)32, true);
+  } else {
+    Wire1.beginTransmission(NFC_ADDR);
+    Wire1.write(0x28);
+    Wire1.endTransmission(false);
+    Wire1.requestFrom((uint16_t)NFC_ADDR, (uint8_t)32, true);
+  }
+  Serial.print("I2C bus 0x");
+  Serial.println(NFC_ADDR, HEX);
+  uint8_t c = 0;
+  for (int i=0x28; i<=0x47; i++) {  // OM9663 read from 0x28 to 0x47
+    if (nIndex == 0) {
+      c = Wire.read();
+    } else {
+      c = Wire1.read();
+    }
+    Serial.print("Address: 0x");
+    Serial.print(i, HEX);
+    Serial.print(", Value: 0x");
+    Serial.println(c, HEX);
+  }
+  Serial.println();
+}
+
 void NOA_PUB_I2C_SetReg(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t value) {
   if (nIndex == 0) {
     Wire.beginTransmission(PD_ADDR);

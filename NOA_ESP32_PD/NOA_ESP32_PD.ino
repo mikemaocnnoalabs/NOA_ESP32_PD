@@ -10,7 +10,7 @@
 #include "NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.0.8"
+#define NOA_ESP32_PD_VERSION "0.0.0.9"
 #else
 #define NOA_ESP32_PD_VERSION "0.1.0.8"
 #endif
@@ -18,11 +18,11 @@
 extern int const usb_pd_snk_sel_pin;
 
 #ifdef NOA_PD_SNACKER
-#include <Adafruit_MFRC630.h>
+#include "Adafruit_OM9663.h"
 #include "NOA_App.h"
 #include "NOA_Net.h"
 #include "NEOPixel.h"
-#include "MFRC630.h"
+#include "NOA_NFC.h"
 
 const int usb_pd_snk_int_pin = 32;    // init pin for PD snk
 const int usb_pd_snk_sel_pin = 33;    // sel pin for PD snk
@@ -33,13 +33,12 @@ int usb_pd_src1_sel_pin = 14;         // sel pin for PD src
 const int ncp_bb_con1_int_pin = 25;   // init pin for ncp81239
 int ncp_bb_con1_en_pin = 12;          // enable pin for ncp81239
 
-const int ncp_bb_con9v_int_pin = 35;   // init pin for ncp81239 9V(Wireles Charger)
-int ncp_bb_con9v_en_pin = 13;          // enable pin for ncp81239 9V(Wireles Charger)
-
-extern int const ncp_bb_con9v_tempadc_pin;
-const int ncp_bb_con9v_tempadc_pin = 15;   // Wireless Charger Coil Temperrature ADC Input
-ESP32AnalogRead ncp_bb_con9v_tempadc;
-const int ncp_bb_con9v_led_pin = 18;       // Wireless Charger Status Indication
+// const int ncp_bb_con9v_int_pin = 35;   // init pin for ncp81239 9V(Wireles Charger)
+// int ncp_bb_con9v_en_pin = 13;          // enable pin for ncp81239 9V(Wireles Charger)
+// extern int const ncp_bb_con9v_tempadc_pin;
+// const int ncp_bb_con9v_tempadc_pin = 15;   // Wireless Charger Coil Temperrature ADC Input
+// ESP32AnalogRead ncp_bb_con9v_tempadc;
+// const int ncp_bb_con9v_led_pin = 18;       // Wireless Charger Status Indication
 
 // USB-C Specific - TCPM start 1
 const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
@@ -50,11 +49,11 @@ const struct tcpc_config_t tcpc_config[CONFIG_USB_PD_PORT_COUNT] = {
 
 const uint8_t PD_ADDR = 0x22;
 const uint8_t PM_ADDR = 0x74;
+const uint8_t NFC_ADDR = 0x29;
 
 const int mfrc_630_nfc_int_pin = 5;  // init pin for NFC
 const int mfrc_630_nfc_pdown_pin = 4;  // init pin for NFC
-// Adafruit_MFRC630 rfid = Adafruit_MFRC630(&Wire1, 0x29, 4);
-Adafruit_MFRC630 rfid_nfc = Adafruit_MFRC630(&Wire1, 0x29, mfrc_630_nfc_pdown_pin);
+Adafruit_OM9663 rfid_nfc = Adafruit_OM9663(1, OM9663_I2C_ADDR, mfrc_630_nfc_pdown_pin);
 
 #else
 const int usb_pd_snk_int_pin = 38;  // init pin for PD snk(P1)
@@ -98,7 +97,10 @@ const uint8_t P3M_ADDR = 0x75;
 
 int pd_source_cap_current_index = 0, pd_source_cap_max_index = 0;
 static int pd_sink_port_ready = 0;
+static int pd_sink_port_default_valtage = 0;
 static int pd_source_port_ready = 0;
+
+static int wireless_charger_port_ready = 0;
 
 // This banner is checked the memmory of MCU platform
 const char NOA_Banner[] = {0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\
@@ -161,59 +163,9 @@ void start_vTask(void * pvParameters) {
   vTaskDelay(2000/portTICK_PERIOD_MS);
   NOA_Net_init();     // Init NOA Net App
   vTaskDelay(2000/portTICK_PERIOD_MS);
-  MFRC630_NFC_init(); // Init NOA NFC App
-  vTaskDelay(2000/portTICK_PERIOD_MS);  
+//  NOA_NFC_init(); // Init NOA NFC App
+//  vTaskDelay(2000/portTICK_PERIOD_MS);  
   vTaskDelete(NULL);
-}
-
-void fifo_read_test(void) {
-  DBGLOG(Debug, "Reading randomly generated numbers from FIFO buffer");
-
-  /* Generate random numbers into the FIFO */
-  rfid_nfc.writeCommand(MFRC630_CMD_READRNR);
-  /* Note, this command requires a 10ms delay to fill the buffer! */
-  vTaskDelay(10);
-
-  /* Dump the FIFO 16 bytes at a time to stay within 32 byte I2C limit */
-  uint8_t buff[16];
-  int16_t len = rfid_nfc.readFIFOLen();
-  while (len) {
-    memset(buff, 0, sizeof(buff));
-    int16_t readlen = rfid_nfc.readFIFO(len > 16 ? 16 : len, buff);
-    len -= readlen;
-    /* Display the buffer in 16 byte chunks. */
-    NOA_PUB_Print_Buf_Hex(buff, readlen);
-  }
-}
-
-void fifo_write_test(void) {
-  uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-
-  /* Write data into the FIFO buffer */
-  DBGLOG(Debug, "Writing 16 bytes into FIFO buffer");
-  int16_t writelen = rfid_nfc.writeFIFO(sizeof(buff), buff);
-  (void)writelen;
-
-  /* Read data back and display it*/
-  memset(buff, 0, sizeof(buff));
-  int16_t readlen = rfid_nfc.readFIFO(sizeof(buff), buff);
-  NOA_PUB_Print_Buf_Hex(buff, readlen);
-}
-
-void fifo_clear_test(void) {
-  uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-  /* Write data into the FIFO buffer */
-  DBGLOG(Debug, "Writing 16 bytes into FIFO buffer");
-  int16_t writelen = rfid_nfc.writeFIFO(sizeof(buff), buff);
-  (void)writelen;
-  int16_t len = rfid_nfc.readFIFOLen();
-  DBGLOG(Debug, "FIFO len = %d", len);
-
-  /* Clear the FIFO */
-  DBGLOG(Debug, "Clearing FIFO");
-  rfid_nfc.clearFIFO();
-  len = rfid_nfc.readFIFOLen();
-  DBGLOG(Debug, "FIFO len = %d", len);
 }
 #endif
 
@@ -239,19 +191,17 @@ void setup() {
   digitalWrite(usb_pd_src1_sel_pin, HIGH);
 
 #ifdef NOA_PD_SNACKER
-  ncp_bb_con9v_tempadc.attach(ncp_bb_con9v_tempadc_pin);
-  
-  pinMode(ncp_bb_con9v_int_pin, INPUT_PULLUP);  // Wireless charger
-  pinMode(ncp_bb_con9v_en_pin, OUTPUT);
-  digitalWrite(ncp_bb_con9v_en_pin, HIGH);
-  pinMode(ncp_bb_con9v_led_pin, OUTPUT);
-  digitalWrite(ncp_bb_con9v_led_pin, HIGH);
+//  ncp_bb_con9v_tempadc.attach(ncp_bb_con9v_tempadc_pin);
+//  
+//  pinMode(ncp_bb_con9v_int_pin, INPUT_PULLUP);  // Wireless charger
+//  pinMode(ncp_bb_con9v_led_pin, OUTPUT);
+//  digitalWrite(ncp_bb_con9v_led_pin, HIGH);
   
   Wire.begin(26,27);
   Wire.setClock(600000);
 
   Wire1.begin(21,22);
-  Wire1.setClock(400000);
+  Wire1.setClock(600000);
 
   NOA_PUB_I2C_Scanner(0);
   NOA_PUB_I2C_Scanner(1);
@@ -260,25 +210,14 @@ void setup() {
     DBGLOG(Debug,"Unable to initialize the MFRC630. Check wiring?");
   } else {
     DBGLOG(Info,"Initialize the MFRC630 Success!");
-    fifo_clear_test();
-    fifo_write_test();
-    fifo_read_test();
+    OM9663_fifo_clear_test();
+    OM9663_fifo_write_test();
+    OM9663_fifo_read_test();
   }
  
   pd_init(0); // init pd snk
-  delay(50);
-
-  Main_Task = xTaskCreateStaticPinnedToCore(start_vTask,
-                     "startvTask",
-                     SIZE_OF_STACK,
-                     ( void * ) NULL,
-                     tskIDLE_PRIORITY + 1,
-                     (StackType_t *const)TaskStackBuffer,
-                     (StaticTask_t *const)&TaskTCBBuffer,
-                     ARDUINO_RUNNING_CORE);
-  if (Main_Task == NULL || &TaskTCBBuffer == NULL) {
-    DBGLOG(Error, "Create Main_Task fail");
-  }
+//  delay(50);
+  vTaskDelay(50/portTICK_PERIOD_MS);
 #else  
   pinMode(usb_pd_src3_int_pin, INPUT_PULLUP);  // SRC 3
   pinMode(ncp_bb_con3_int_pin, INPUT_PULLUP);
@@ -336,6 +275,16 @@ void loop() {
   pd_run_state_machine(0, reset);
  
   if (pd_sink_port_ready == 1) {
+//    if (wireless_charger_port_ready == 0 && pd_sink_port_default_valtage != 5) {
+//      DBGLOG(Info, "Wireless charger port is ready!");
+//      pinMode(ncp_bb_con9v_en_pin, OUTPUT);
+//      digitalWrite(ncp_bb_con9v_en_pin, HIGH);
+//      vTaskDelay(50/portTICK_PERIOD_MS);
+////      ncp81239_pmic_init(2);
+////      ncp81239_pmic_set_tatus(2);
+////      vTaskDelay(50/portTICK_PERIOD_MS);
+//      wireless_charger_port_ready = 1;
+//    }
     if (pd_source_port_ready == 0) {
       pd_init(1); // init pd src
       vTaskDelay(50/portTICK_PERIOD_MS);
@@ -344,16 +293,24 @@ void loop() {
       ncp81239_pmic_set_tatus(1);
       vTaskDelay(50/portTICK_PERIOD_MS);
 
-      ncp81239_pmic_init(2);
-      ncp81239_pmic_set_tatus(2);
-      vTaskDelay(50/portTICK_PERIOD_MS);
-
 //      NOA_PUB_I2C_PD_RreadAllRegs(0, PD_ADDR);
 //      NOA_PUB_I2C_PM_RreadAllRegs(0, PM_ADDR);
 //      NOA_PUB_I2C_PD_RreadAllRegs(1, PD_ADDR);
 //      NOA_PUB_I2C_PM_RreadAllRegs(1, PM_ADDR);
+      NOA_PUB_I2C_NFC_RreadAllRegs(1, NFC_ADDR);
 
       pd_source_port_ready = 1;
+      Main_Task = xTaskCreateStaticPinnedToCore(start_vTask,
+                     "startvTask",
+                     SIZE_OF_STACK,
+                     ( void * ) NULL,
+                     tskIDLE_PRIORITY + 1,
+                     (StackType_t *const)TaskStackBuffer,
+                     (StaticTask_t *const)&TaskTCBBuffer,
+                     ARDUINO_RUNNING_CORE);
+     if (Main_Task == NULL || &TaskTCBBuffer == NULL) {
+       DBGLOG(Error, "Create Main_Task fail");
+     }
     } else {
       if (LOW == digitalRead(usb_pd_src1_int_pin)) {
         tcpc_alert(1);
@@ -435,5 +392,6 @@ void pd_process_source_cap_callback(int port, int cnt, uint32_t *src_caps)
   if (port == 0) {
     pd_sink_port_ready = 1;
     pd_source_cap_max_index = cnt - 1;
+    pd_sink_port_default_valtage = *src_caps;
   }
 }
