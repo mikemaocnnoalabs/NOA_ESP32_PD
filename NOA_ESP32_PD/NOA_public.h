@@ -42,6 +42,7 @@ void NOA_PUB_I2C_SendBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_
 void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
 void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
 void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR);
+void NOA_PUB_I2C_NFC_RreadAllRegs(uint8_t nIndex, uint8_t NFC_ADDR);
 
 #ifdef __cplusplus
 }

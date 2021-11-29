@@ -5,7 +5,7 @@
   Released under an MIT license. See LICENSE file. 
 */
 #include <Esp.h>
-#include "WiFi.h"
+#include <WiFi.h>
 
 #include "usb_pd.h"
 #include "NOA_App.h"
@@ -34,17 +34,15 @@ IPAddress lxip1(192,168,88,1);    //AP gateway
 IPAddress lxip2(255,255,255,0);   //AP netmask
 IPAddress xip(192,168,88,2);      //Remote IP for AP network
 
-#define STA_SSID "NOARDTest"
-#define STA_PASS "123456789"
-#define AP_SSID  "esp32"
+WiFiServer Iperf_Server(5001);
 
-unsigned int localPort=9999;      //Local port
-unsigned int remoteport=9999;     //Remote port
+unsigned int localPort=5001;      //Local port
+unsigned int remoteport=80;       //Remote port
 const char* ssid="NOARDTest";     //default SSID for Sta
-const char* password="123456789"; //passwd for default SSID
-const char* ssid1="WIFI1";        //default AP SSID
-const char* password1="987654321"; //passwd for default AP SSID
-char buff[1024];    // buffer for network
+const char* password="12345678";  //passwd for default SSID
+// const char* ssid1="NOASNA_0000000000";        //default AP SSID
+const char* password1="87654321"; //passwd for default AP SSID
+#define NOA_ESP32_HOST_NAME  "NOA_SNACKER_ESP32"
 
 //****************************************************************************
 // CODE TABLES
@@ -53,19 +51,22 @@ void WiFiEvent(WiFiEvent_t event){
   switch(event) {
     case SYSTEM_EVENT_AP_START:
       Serial.println("AP Started");
-      WiFi.softAPsetHostname(AP_SSID);
+      WiFi.softAPConfig(lxip, lxip1, lxip2);  // Set AP Net parameters
+      WiFi.softAPsetHostname(NOA_ESP32_HOST_NAME);
+      WiFi.setHostname(NOA_ESP32_HOST_NAME);
+      Serial.print("AP IPv4:");
+      Serial.println(WiFi.softAPIP());
       break;
     case SYSTEM_EVENT_AP_STOP:
       Serial.println("AP Stopped");
       break;
     case SYSTEM_EVENT_STA_START:
       Serial.println("STA Started");
-      WiFi.setHostname(AP_SSID);
       break;
     case SYSTEM_EVENT_STA_CONNECTED:
       Serial.println("STA Connected");
-      WiFi.enableIpV6();
-        break;
+//      WiFi.enableIpV6();
+      break;
     case SYSTEM_EVENT_AP_STA_GOT_IP6:
       Serial.print("STA IPv6: ");
       Serial.println(WiFi.localIPv6());
@@ -94,46 +95,99 @@ void WIFI_Test_Task_Loop( void * pvParameters ){
   if (n == 0) {
     Serial.printf("No networks found\r\n");
   } else {
-    Serial.printf("%d networks found\r\n", n);
+    Serial.printf("%d WIFI(2.4G)Networks Found\r\n", n);
     for (int i = 0; i < n; ++i) {
       // Print SSID and RSSI for each network found
-//      Serial.print(i + 1);
-//      Serial.print(": ");
-//      Serial.print(WiFi.SSID(i));
-//      Serial.print(" (");
-//      Serial.print(WiFi.RSSI(i));
-//      Serial.print(")");
-//      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
-//      delay(10);
-        Serial.printf("%d:  %s \t\t (%d)\r\n", i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i));
-/*        switch(WiFi.encryptionType(i)) {
-          case WIFI_AUTH_OPEN:
-            Serial.println();
-            break;
-          case WIFI_AUTH_WEP:
-            break;
-          case WIFI_AUTH_WPA_PSK:
-            break;
-          case WIFI_AUTH_WPA2_PSK:
-            break;
-          case WIFI_AUTH_WPA_WPA2_PSK:
-            break;
-          case WIFI_AUTH_WPA2_ENTERPRISE:
-            break;
-        } */
+      int nrssi = 2 * (WiFi.RSSI(i) + 100);
+      if (nrssi > 100) {
+        nrssi = 100;
+      }
+      Serial.printf("%2d:%-24.24s %s (%d:%-3d) CH%02d", i + 1, WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.RSSI(i), nrssi, WiFi.channel(i));
+      switch(WiFi.encryptionType(i)){
+        case WIFI_AUTH_OPEN:
+          Serial.println(" OPEN");
+          break;
+        case WIFI_AUTH_WEP:
+          Serial.println(" WEP");
+          break;
+        case WIFI_AUTH_WPA_PSK:
+          Serial.println(" WPA");
+          break;
+        case WIFI_AUTH_WPA2_PSK:
+          Serial.println(" WPA2");
+          break;
+        case WIFI_AUTH_WPA_WPA2_PSK:
+          Serial.println(" WPA/WPA2");
+          break;
+        case WIFI_AUTH_WPA2_ENTERPRISE:
+          Serial.println(" WPA2_EN");
+          break;
+        default:
+          break;
+      }
     }
   }
 
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.scanDelete();
+  WiFi.disconnect(true);
+  WiFi.softAPdisconnect(true);
+
+  char deviceid[21] = {0};
+  uint64_t chipid;
+  chipid = ESP.getEfuseMac();
+  sprintf(deviceid, "%" PRIu64, chipid);
+  uint16_t idlen = strlen(deviceid);
+//  Serial.printf(" ESP Device ID %s %d\r\n", deviceid, idlen);
+  char strWIFIap[32] = {0};
+  memset(strWIFIap,'\0', 32);
+  snprintf(strWIFIap, 32, "NOA_SNACKER_%-6.6s", &deviceid[idlen - 6]);
+//  DBGLOG(Info, "AP_SSID %s", strWIFIap);
+  const char* ssid1 = strWIFIap;
+
   WiFi.onEvent(WiFiEvent);
-  Serial.println(WiFi.macAddress());  
-  DBGLOG(Info, "WIFI_Test_Task_Loop Exit from core %d", xPortGetCoreID());
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ssid1, password1, 1);  // Set AP SSID and Passwd
+//  WiFi.softAPConfig(lxip, lxip1, lxip2);  // Set AP Net parameters
+
+  WiFi.begin(ssid, password);  // Set STA SSID and Passwd
+//  WiFi.config(sip, sip1, sip2);  // Set STA Net parameters
+  
+  Serial.println("Please wait");
+//  Serial.println(WiFi.getTxPower());
+//  Serial.println(WiFi.softAPSSID().c_str());
+//  Serial.println(WiFi.SSID().c_str());
+//  Serial.println(WiFi.getHostname());
+//  Serial.println(WiFi.softAPgetHostname());
+  Serial.printf("STA mac: %s\r\n", WiFi.macAddress().c_str());
+  Serial.printf(" AP mac: %s\r\n", WiFi.softAPmacAddress().c_str());
 
   NOA_PUB_MSG msg;
   memset(&msg, 0, sizeof(NOA_PUB_MSG));
   msg.message = NET_MSG_READY;
   xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
   nStatus_WiFiTesting = 1;
+
+  Iperf_Server.begin(5001);
+  uint8_t data_buffer[1024] = {0};
+  while(true) {
+    // listen for incoming clients
+    WiFiClient Iperf_Client = Iperf_Server.available();
+    if (Iperf_Client) {
+      Serial.printf("%ld Get a New Iperf Client\r\n", millis()/1000);
+      while (Iperf_Client.connected()) {
+        if (Iperf_Client.available()) {
+          Iperf_Client.read(data_buffer, 1024);
+//          memset(&data_buffer, 0, SIZE_OF_STACK);
+        }
+      }
+      // close the connection:
+      Iperf_Client.stop();
+      Serial.printf("%ld Iperf Client disconnected\r\n", millis()/1000);
+    }
+//    vTaskDelay(1/portTICK_PERIOD_MS);
+  }
+
+  DBGLOG(Info, "WIFI_Test_Task_Loop Exit from core %d", xPortGetCoreID());
   vTaskDelete(NULL);
 }
 
@@ -154,7 +208,7 @@ void Net_APP_Task_Loop(void * pvParameters) {
     }
     switch(msg.message) {
       case APP_MSG_TIMER_ID:
-        DBGLOG(Info, "Net task APP_MSG_TIMER_ID, StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
+//        DBGLOG(Info, "Net task APP_MSG_TIMER_ID, StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
 /*        switch(WiFi.status()) {
           case WL_CONNECTED:
             break;
@@ -179,7 +233,7 @@ void NOA_Net_init() {
                    "WIFITestTask",          // Text name for the task.
                    SIZE_OF_NET_STACK,       // Stack size in bytes, not words.
                    NULL,                    // Parameter passed into the task.
-                   tskIDLE_PRIORITY + 1,    // Priority at which the task is created.
+                   tskIDLE_PRIORITY + 1,        // Priority at which the task is created.
                    xStack_WIFI_Test,          // Array to use as the task's stack.
                    &xTaskBuffer_WIFI_Test,   // Variable to hold the task's data structure.
                    ARDUINO_RUNNING_CORE);

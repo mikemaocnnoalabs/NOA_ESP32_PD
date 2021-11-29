@@ -13,14 +13,14 @@
 #include "usb_pd.h"
 #include "NCP81239.h"
 #include "NEOPixel.h"
-#include "MFRC630.h"
+#include "NOA_NFC.h"
 
 #include "NOA_App.h"
 #include "NOA_Net.h"
 #include "NOA_public.h"
 
 #define SIZE_OF_APP_STACK  SIZE_OF_STACK * 4
-extern ESP32AnalogRead ncp_bb_con9v_tempadc;
+// extern ESP32AnalogRead ncp_bb_con9v_tempadc;
 extern int ncp_bb_con1_en_pin;
 
 TaskHandle_t NOA_App_Task = NULL;
@@ -62,6 +62,7 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         nStatus_RGB = 1;
         break;
       case NFC_MSG_READY:
+        DBGLOG(Info, "App task NFC_MSG_READY");
         nStatus_NFC = 1;
         break;
       case NET_MSG_READY:
@@ -90,7 +91,7 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
       case APP_MSG_WDG_ID:
 //        DBGLOG(Info, "App task APP_MSG_WDG_ID");
 //        uint16_t uxArraySize = uxTaskGetNumberOfTasks();
-        DBGLOG(Info, "Temperrature = %d in %ld Heap %d/%d StackSize %ld", ncp_bb_con9v_tempadc.readMiliVolts(), millis()/1000, ESP.getFreeHeap(), ESP.getHeapSize(), uxTaskGetStackHighWaterMark(NULL));
+//        DBGLOG(Info, "Temperrature = %d in %ld Heap %d/%d StackSize %ld", ncp_bb_con9v_tempadc.readMiliVolts(), millis()/1000, ESP.getFreeHeap(), ESP.getHeapSize(), uxTaskGetStackHighWaterMark(NULL));
         break;
       case APP_MSG_TIMER_ID:
 //        DBGLOG(Info, "App task APP_MSG_TIMER_ID");
@@ -110,6 +111,15 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
             msg.message = APP_MSG_WIFIREADY;
           } else {
             msg.message = APP_MSG_WIFINOTREADY;
+          }
+          if (NOA_RGB_TASKQUEUE != NULL) {
+            xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
+          }
+          memset(&msg, 0, sizeof(NOA_PUB_MSG));
+          if(nStatus_NFC == 1) {
+            msg.message = APP_MSG_NFCREADY;
+          } else {
+            msg.message = APP_MSG_NFCNOTREADY;
           }
           if (NOA_RGB_TASKQUEUE != NULL) {
             xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
