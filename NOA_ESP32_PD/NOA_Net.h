@@ -14,7 +14,10 @@ extern "C" {
 
 #define  MSG_ID_USER_NET_START    0x3000
 
-#define  NET_MSG_READY          MSG_ID_USER_NET_START+0xFC1
+#define  NET_MSG_READY              MSG_ID_USER_NET_START+0xFC1
+#define  NET_MSG_NOTREADY           MSG_ID_USER_NET_START+0xFC2
+#define  APNET_MSG_READY            MSG_ID_USER_NET_START+0xFC3
+#define  APNET_MSG_NOTREADY         MSG_ID_USER_NET_START+0xFC4
 
 void NOA_Net_init();
 

@@ -8,6 +8,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #include "usb_pd.h"
+#include "NCP81239.h"
 #include "NEOPixel.h"
 #include "NOA_App.h"
 #include "NOA_public.h"
@@ -18,7 +19,7 @@ const int neo_pixel_rgb_pin = 19;
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS      5
-// static int nStatus_SRC = 0, nStatus_SNK = 0, nStatus_Wireless = 0, nStatus_WIFI = 0, nStatus_NFC = 0;
+// static int nStatus_SRC = 0, nStatus_WIFI_AP = 0, nStatus_Wireless = 0, nStatus_WIFI = 0, nStatus_NFC = 0;
 static int nStatus[NUMPIXELS] = {0};
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
 // Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
@@ -40,6 +41,8 @@ StackType_t xStack_RGB_Light_Test[SIZE_OF_STACK] = {0};
 
 static int nStatus_RGB_Testing = 0;
 
+extern StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
+extern uint8_t nAP_Sta_Numbers;
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
@@ -48,8 +51,8 @@ void RGB_Light_Test_Task_Loop( void * pvParameters ){
   NEO_Pixel_Clear();
 
   NEO_Pixel_Simple_Test();
-  rainbow(20);
-//  rainbowCycle(20);
+//  rainbow(20);
+  rainbowCycle(20);
 //  theaterChaseRainbow(50);
 //  NEO_Pixel_Clear();
   
@@ -90,16 +93,38 @@ void RGB_Light_Task_Loop( void * pvParameters ){
       case RGB_MSG_READY:
         break;
       case APP_MSG_SRCREADY:
-        nStatus[1] = 1;
+//        DBGLOG(Info, "SRC port voltage = %d", g_stPMICData[1].ucCR01DacTarget);
+        if (g_stPMICData[1].ucCR01DacTarget > 10 && g_stPMICData[1].ucCR01DacTarget <= 50) {
+          nStatus[0] = 1;
+        }
+        if (g_stPMICData[1].ucCR01DacTarget > 50 && g_stPMICData[1].ucCR01DacTarget <= 90) {
+          nStatus[0] = 3;
+        }
+        if (g_stPMICData[1].ucCR01DacTarget > 90 && g_stPMICData[1].ucCR01DacTarget <= 120) {
+          nStatus[0] = 4;
+        }
+        if (g_stPMICData[1].ucCR01DacTarget > 120 && g_stPMICData[1].ucCR01DacTarget <= 150) {
+          nStatus[0] = 5;
+        }
+        if (g_stPMICData[1].ucCR01DacTarget > 150 && g_stPMICData[1].ucCR01DacTarget <= 200) {
+          nStatus[0] = 2;
+        }
+        if (g_stPMICData[1].ucCR01DacTarget > 200) {
+          nStatus[0] = 6;
+        }
         break;
       case APP_MSG_SRCNOTREADY:
-        nStatus[1] = 0;
+        nStatus[0] = 0;
         break;
-      case APP_MSG_SNKREADY:
-        nStatus[0] = 1;
+      case APP_MSG_APREADY:
+        if (nAP_Sta_Numbers > 0) {
+          nStatus[1] = 7;
+        } else {
+          nStatus[1] = 1;
+        }
         break;
-      case APP_MSG_SNKNOTREADY:
-        nStatus[0] = 0; 
+      case APP_MSG_APNOTREADY:
+        nStatus[1] = 0; 
         break;
       case APP_MSG_WIRELESSREADY:
         nStatus[2] = 1;
@@ -124,8 +149,6 @@ void RGB_Light_Task_Loop( void * pvParameters ){
           break;
         }
         toggle_status = !toggle_status;
-        nStatus[0] = 1; // status for SNK
-        nStatus[2] = 1; // status for Wireless
 //        DBGLOG(Info, "RGB task APP_MSG_TIMER_ID StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
         if (toggle_status == true) {
           NEO_Pixel_Status();
@@ -188,7 +211,7 @@ void NEO_Pixel_Simple_Test() {
       pixels.show(); // This sends the updated pixel color to the hardware.
       vTaskDelay(delayval); // Delay for a period of time (in milliseconds).
     }
-    vTaskDelay(1000);
+    vTaskDelay(500);
   }
   // For a set of NeoPixels the first NeoPixel is 0, second is 1, all the way up to the count of pixels minus one.
 //  for(int i=0; i < pixels.numPixels(); i++){
@@ -197,28 +220,28 @@ void NEO_Pixel_Simple_Test() {
 //    pixels.show(); // This sends the updated pixel color to the hardware.
 //    vTaskDelay(delayval); // Delay for a period of time (in milliseconds).
 //  }
-//  vTaskDelay(1000);
+//  vTaskDelay(500);
   for(int i=0; i < pixels.numPixels(); i++){
     // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
     pixels.setPixelColor(i, pixels.Color(0, 255, 0)); // Moderately bright green color.
     pixels.show(); // This sends the updated pixel color to the hardware.
     vTaskDelay(delayval); // Delay for a period of time (in milliseconds).
   }
-  vTaskDelay(1000);
+  vTaskDelay(500);
   for(int i=0; i < pixels.numPixels(); i++){
     // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
     pixels.setPixelColor(i, pixels.Color(0, 0, 255)); // Moderately bright blue color.
     pixels.show(); // This sends the updated pixel color to the hardware.
     vTaskDelay(delayval); // Delay for a period of time (in milliseconds).
   }
-  vTaskDelay(1000);
+  vTaskDelay(500);
   for(int i=0; i < pixels.numPixels(); i++){
     // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
     pixels.setPixelColor(i, pixels.Color(255, 255, 255)); // Moderately bright white color.
     pixels.show(); // This sends the updated pixel color to the hardware.
     vTaskDelay(delayval); // Delay for a period of time (in milliseconds).
   }
-  vTaskDelay(1000);
+  vTaskDelay(500);
 
   colorWipe(pixels.Color(255, 0, 0), 50); // Red
   colorWipe(pixels.Color(0, 255, 0), 50); // Green
@@ -256,17 +279,27 @@ void NEO_Pixel_Status() {
         pixels.setPixelColor(i, pixels.Color(0, 0, 0)); // Moderately bright black color.
         break;
       case 2:
-        pixels.setPixelColor(i, pixels.Color(255, 0, 0)); // Moderately bright black color.
+        pixels.setPixelColor(i, pixels.Color(255, 0, 0)); // Moderately bright red color.
         break;
       case 3:
-        pixels.setPixelColor(i, pixels.Color(0, 255, 0)); // Moderately bright black color.
+        pixels.setPixelColor(i, pixels.Color(255, 255, 0)); // Moderately bright yellow color.
         break;
       case 4:
-        pixels.setPixelColor(i, pixels.Color(0, 0, 255)); // Moderately bright black color.
+        pixels.setPixelColor(i, pixels.Color(255, 165, 0)); // Moderately bright orange color.
+        break;
+      case 5:
+        pixels.setPixelColor(i, pixels.Color(255, 69, 0)); // Moderately bright orangered color.
+        break;
+      case 6:
+        pixels.setPixelColor(i, pixels.Color(255, 0, 255)); // Moderately bright fushsia color.
+        break;
+      case 7:
+        pixels.setPixelColor(i, pixels.Color(0, 0, 255)); // Moderately bright blue color.
         break;
       case 1:
       default:
-        pixels.setPixelColor(i, pixels.Color(255, 255, 255)); // Moderately bright black color.
+        pixels.setPixelColor(i, pixels.Color(255, 255, 255)); // Moderately bright white color.
+//        pixels.setPixelColor(i, pixels.Color(255, 215, 0)); // Moderately bright gold color.
         break;
     }
     pixels.show(); // This sends the updated pixel color to the hardware.
@@ -299,7 +332,8 @@ void rainbow(uint8_t wait) {
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
 
-  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+//  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+  for(j=0; j<256; j++) {
     for(i=0; i<pixels.numPixels(); i++) {
       pixels.setPixelColor(i, Wheel(((i * 256 / pixels.numPixels()) + j) & 255));
     }

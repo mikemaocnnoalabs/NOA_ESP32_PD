@@ -58,7 +58,6 @@ extern "C" {
 //--------------------------------------------------
 #define _ADDR_01_VBUS                       0x32    // 5V
 #define _ADDR_02_SLEW_RATE                  0x00
-// #define _ADDR_03_PWM_FREQ                   0x02    // 300 kHZ
 #define _ADDR_03_PWM_FREQ                   0x00    // 600 kHZ
 // #define _ADDR_05_OCP_CLIM_POS               0x03    //
 // #define _ADDR_05_OCP_CLIM_POS               0x00    //

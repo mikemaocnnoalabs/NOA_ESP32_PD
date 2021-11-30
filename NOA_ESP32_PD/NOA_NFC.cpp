@@ -114,7 +114,7 @@ void OM9663_status_test(void) {
   }
 }
 
-void radio_mifare_dump_sector(uint8_t sector_num) {
+bool radio_mifare_dump_sector(uint8_t sector_num) {
   uint8_t readbuf[16] = { 0 };
   /* Try to read four blocks inside the sector. */
   for (uint8_t b = 0; b < 4 ; b++) {
@@ -123,13 +123,14 @@ void radio_mifare_dump_sector(uint8_t sector_num) {
     if (len == 0) {
       /* No data returned! */
       DBGLOG(Debug, "What!?! No data returned for block %d!", sector_num * 4 + b);
-      return;
+      return false;
     } else {
       /* Display the block contents. */
-      DBGLOG(Debug, "%d: ", sector_num * 4 + b);
+      Serial.printf("%2d: ", sector_num * 4 + b);
       NOA_PUB_Print_Buf_Hex(readbuf, len);
     }
   }
+  return true;
 }
 
 /* Read the tag contents (assumes scan has been successfully called!). */
@@ -175,18 +176,19 @@ void radio_iso1443A_106_scan() {
   /* Select the tag if we found something */
   if (atqa) {
     uint8_t uid[10] = { 0 };
-    uint8_t uidlen;
-    uint8_t sak;
+    uint8_t uidlen = 0;
+    uint8_t sak = 0;
     DBGLOG(Debug, "Found ISO14443A-106 tag with ATQA 0x%02X", atqa);
     DBGLOG(Debug, "Selecting the tag");
     uidlen = rfid_nfc.iso14443aSelect(uid, &sak);
     if (uidlen) {
       Serial.print("Got a UID! --> ");
-      for (uint8_t i=0; i<uidlen; i++) {
-        Serial.print(uid[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println("");
+      NOA_PUB_Print_Buf_Hex(uid, uidlen);
+//      for (uint8_t i=0; i<uidlen; i++) {
+//        Serial.print(uid[i], HEX);
+//        Serial.print(" ");
+//      }
+//      Serial.println("");
       /* Try to read and dump the card's contents. */
       radio_mifare_read(uid, uidlen);
     } else {
@@ -317,35 +319,38 @@ bool radio_mifare1K_dump_minimal(void) {
   uint16_t atqa = rfid_nfc.iso14443aRequest();
   /* Looks like we found a tag, move on to selection. */
   if (atqa) {
-    DBGLOG(Debug, "Found tag %d", atqa);
+//    DBGLOG(Debug, "Found tag %d", atqa);
     uint8_t uid[10] = { 0 };
-    uint8_t uidlen;
-    uint8_t sak;
+    uint8_t uidlen = 0;
+    uint8_t sak = 0;
 
     // Retrieve the UID and SAK values.
     uidlen = rfid_nfc.iso14443aSelect(uid, &sak);
     Serial.print("Found a tag with UUID ");
-    for (uint8_t i = 0; i < uidlen; i++) {
-      Serial.print(uid[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println("");
+    NOA_PUB_Print_Buf_Hex(uid, uidlen);
     if (uidlen == 4) {
       // Assume Mifare Classic/Plus and set the global/default key.
       rfid_nfc.mifareLoadKey(rfid_nfc.mifareKeyGlobal);
       // Try to authenticate sectors 0..15.
-      for (uint8_t s = 0; s < 16; s++) {
+//      for (uint8_t s = 0; s < 16; s++) {
+      for (uint8_t s = 0; s < 1; s++) {
         // Try to authenticate this sector.
         Serial.print("Sector "); Serial.println(s);
         if(rfid_nfc.mifareAuth(MIFARE_CMD_AUTH_A, s*4, uid)) {
           // We should be able to read the sector contents now.
-          radio_mifare_dump_sector(s);
+          if (radio_mifare_dump_sector(s) != true) {
+            rc = false;
+            break;
+          } else {
+            rc = true;
+          }
         } else {
           Serial.print("AUTH_A failed for sector ");
           Serial.println(s);
+          rc = false;
+          break;
         }
       }
-      rc = true;
     } else {
       DBGLOG(Debug, "Unexpected UID length: %d", uidlen);
       rc = false;
