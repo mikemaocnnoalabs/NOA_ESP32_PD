@@ -108,7 +108,7 @@ uint8_t reverse8(uint8_t n) {
 */
 /**************************************************************************/
 void Adafruit_OM9663::write8(byte reg, byte value) {
-//  CPRINTF("Writing 0x%02X value to 0x%02X", value, reg);
+  CPRINTF("Writing 0x%02X value to 0x%02X", value, reg);
 
   switch (_transport) {
   case OM9663_TRANSPORT_I2C:
@@ -117,7 +117,7 @@ void Adafruit_OM9663::write8(byte reg, byte value) {
 //    _wire->write(reg);
 //    _wire->write(value);
 //    _wire->endTransmission();
-    if (_wire_bus == 0) {
+/*    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       Wire.write(value);
@@ -127,8 +127,8 @@ void Adafruit_OM9663::write8(byte reg, byte value) {
       Wire1.write(reg);
       Wire1.write(value);
       Wire1.endTransmission();
-    }
-/*    if (_wire_bus == 0) {
+    } */
+    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       Wire.write(value);
@@ -138,7 +138,7 @@ void Adafruit_OM9663::write8(byte reg, byte value) {
       Wire1.write(reg);
       Wire1.write(value);
       Wire1.endTransmission(true);
-    } */
+    }
     break;
   case OM9663_TRANSPORT_SPI:
     /* SPI */
@@ -161,7 +161,7 @@ void Adafruit_OM9663::write8(byte reg, byte value) {
 */
 /**************************************************************************/
 void Adafruit_OM9663::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
-//  CPRINTF("Writing %d byte(s) to 0x%02X", len, reg);
+  CPRINTF("Writing %d byte(s) to 0x%02X", len, reg);
 
   switch (_transport) {
   case OM9663_TRANSPORT_I2C:
@@ -175,7 +175,7 @@ void Adafruit_OM9663::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
 //      TRACE_PRINT(F(" "));
 //    }
 //    _wire->endTransmission();
-    if (_wire_bus == 0) {
+/*    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       for (uint16_t i = 0; i < len; i++) {
@@ -189,8 +189,8 @@ void Adafruit_OM9663::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
         Wire1.write(buffer[i]);
       }
       Wire1.endTransmission();
-    }
-/*    if (_wire_bus == 0) {
+    } */
+    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       for (uint16_t i = 0; i < len; i++) {
@@ -204,7 +204,7 @@ void Adafruit_OM9663::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
         Wire1.write(buffer[i]);
       }
       Wire1.endTransmission(true);
-    } */
+    }
 //    NOA_PUB_Print_Buf_Hex(buffer, len);
     break;
   case OM9663_TRANSPORT_SPI:
@@ -243,7 +243,7 @@ byte Adafruit_OM9663::read8(byte reg) {
   uint8_t rx[2] = {0};
   uint8_t timeout = 0xFF;
 
-//  CPRINTF("Requesting 1 byte from 0x%02X", reg);
+  CPRINTF("Requesting 1 byte from 0x%02X", reg);
 
   switch (_transport) {
   case OM9663_TRANSPORT_I2C:
@@ -260,7 +260,7 @@ byte Adafruit_OM9663::read8(byte reg) {
 //#endif
 //    /* Dump the response into the supplied buffer */
 //    resp = _wire->read();
-    if (_wire_bus == 0) {
+/*    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       Wire.endTransmission();
@@ -272,8 +272,8 @@ byte Adafruit_OM9663::read8(byte reg) {
       Wire1.endTransmission();
       Wire1.requestFrom((uint8_t)_i2c_addr, (uint8_t)1);
       resp = Wire1.read();
-    }
-/*    if (_wire_bus == 0) {
+    } */
+    if (_wire_bus == 0) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       Wire.endTransmission(false);
@@ -285,7 +285,7 @@ byte Adafruit_OM9663::read8(byte reg) {
       Wire1.endTransmission(false);
       Wire1.requestFrom((uint8_t)_i2c_addr, (uint8_t)1, true);
       resp = Wire1.read();
-    } */
+    }
     break;
   case OM9663_TRANSPORT_SPI:
     /* SPI */
@@ -320,7 +320,7 @@ byte Adafruit_OM9663::read8(byte reg) {
     break;
   }
 
-//  CPRINTF("Response = 0x%02X", resp);
+  CPRINTF("Response = 0x%02X", resp);
 
   return resp;
 }
@@ -555,7 +555,7 @@ int16_t Adafruit_OM9663::readFIFO(uint16_t len, uint8_t *buffer) {
     return -1;
   }
 
-//  CPRINTF("Reading %d byte(s) from FIFO", len);
+  CPRINTF("Reading %d byte(s) from FIFO", len);
 
   /* Read len bytes from the FIFO */
   for (uint16_t i = 0; i < len; i++) {
@@ -580,7 +580,7 @@ int16_t Adafruit_OM9663::writeFIFO(uint16_t len, uint8_t *buffer) {
   if (len > 512) {
     return -1;
   }
-//  CPRINTF("Writing %d byte(s) to FIFO", len);
+  CPRINTF("Writing %d byte(s) to FIFO", len);
   /* Write len bytes to the FIFO */
   for (uint16_t i = 0; i < len; i++) {
     write8(OM9663_REG_FIFO_DATA, buffer[i]);
@@ -596,7 +596,7 @@ int16_t Adafruit_OM9663::writeFIFO(uint16_t len, uint8_t *buffer) {
 */
 /**************************************************************************/
 void Adafruit_OM9663::clearFIFO(void) {
-//  CPRINTF("Clearing FIFO buffer ");
+  CPRINTF("Clearing FIFO buffer ");
   uint8_t ctrl = read8(OM9663_REG_FIFO_CONTROL);
   write8(OM9663_REG_FIFO_CONTROL, ctrl | (1 << 4));
 }
@@ -608,7 +608,7 @@ void Adafruit_OM9663::clearFIFO(void) {
 /**************************************************************************/
 void Adafruit_OM9663::writeCommand(byte command) {
   uint8_t buff[1] = {command};
-//  CPRINTF("Sending CMD 0x%02X", command);
+  CPRINTF("Sending CMD 0x%02X", command);
   writeBuffer(OM9663_REG_COMMAND, 1, buff);
 }
 
@@ -833,7 +833,7 @@ uint16_t Adafruit_OM9663::iso14443aCommand(enum iso14443_cmd cmd) {
 
   /* Wait here until we're done reading, get an error, or timeout. */
   /* TODO: Update to use timeout parameter! */
-//  CPRINTF("F. Waiting for a response or timeout.");
+  CPRINTF("F. Waiting for a response or timeout.");
   uint8_t irqval = 0;
   while (!(irqval & OM9663IRQ1_TIMER0IRQ)) {
     irqval = read8(OM9663_REG_IRQ1);
@@ -947,8 +947,9 @@ uint8_t Adafruit_OM9663::iso14443aSelect(uint8_t *uid, uint8_t *sak) {
     CPRINTF("b. Collision detection (max 32 attempts).");
     for (cnum = 0; cnum < 32; cnum++) {
       CPRINTF("Attempt = %d, known bits = %d ", cnum, kbits);
+#if MFRC630_VERBOSITY >= OM9663_VERBOSITY_DEBUG
       NOA_PUB_Print_Buf_Hex(uid_this_level, (kbits + 8 - 1) / 8);
-
+#endif
       /* Clear the interrupts. */
       write8(OM9663_REG_IRQ0, 0b01111111);
       write8(OM9663_REG_IRQ1, 0b00111111);
@@ -1012,7 +1013,9 @@ uint8_t Adafruit_OM9663::iso14443aSelect(uint8_t *uid, uint8_t *sak) {
             kbits++;
 
             CPRINTF("'uid_this_level' is now %d:", kbits);
+#if MFRC630_VERBOSITY >= OM9663_VERBOSITY_DEBUG
             NOA_PUB_Print_Buf_Hex(uid_this_level, 10);
+#endif
           } else {
             /* Invalid collision position (bit 7 = 0) */
             CPRINTF("Bit collision detected, but no valid position.");
@@ -1049,7 +1052,9 @@ uint8_t Adafruit_OM9663::iso14443aSelect(uint8_t *uid, uint8_t *sak) {
 
       if ((kbits >= 32)) {
         CPRINTF("Leaving collision loop: uid %d bits long", kbits);
+#if MFRC630_VERBOSITY >= OM9663_VERBOSITY_DEBUG
         NOA_PUB_Print_Buf_Hex(uid_this_level, kbits / 8);
+#endif
         break; /* Exit the collision loop */
       }
     } /* End: for (cnum = 0; cnum < 32; cnum++) */

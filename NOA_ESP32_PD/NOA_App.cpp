@@ -38,6 +38,7 @@ hw_timer_t *timer_app = NULL;
 static int nStatus_RGB = 0;
 static int nStatus_NFC = 0;
 static int nStatus_WIFI = 0;
+static int nStatus_AP = 0;
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
@@ -65,16 +66,29 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         DBGLOG(Info, "App task NFC_MSG_READY");
         nStatus_NFC = 1;
         break;
+      case NFC_MSG_NOTREADY:
+        DBGLOG(Info, "App task NFC_MSG_NOTREADY");
+        nStatus_NFC = 0;
+        break;
       case NET_MSG_READY:
         nStatus_WIFI = 1;
+        break;
+      case NET_MSG_NOTREADY:
+        nStatus_WIFI = 0;
+        break;
+      case APNET_MSG_READY:
+        nStatus_AP = 1;
+        break;
+      case APNET_MSG_NOTREADY:
+        nStatus_AP = 0;
         break;
       case APP_MSG_SRCREADY:
         break;
       case APP_MSG_SRCNOTREADY:
         break;
-      case APP_MSG_SNKREADY:
+      case APP_MSG_APREADY:
         break;
-      case APP_MSG_SNKNOTREADY:
+      case APP_MSG_APNOTREADY:
         break;
       case APP_MSG_WIRELESSREADY:
         break;
@@ -120,6 +134,15 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
             msg.message = APP_MSG_NFCREADY;
           } else {
             msg.message = APP_MSG_NFCNOTREADY;
+          }
+          if (NOA_RGB_TASKQUEUE != NULL) {
+            xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
+          }
+          memset(&msg, 0, sizeof(NOA_PUB_MSG));
+          if(nStatus_AP == 1) {
+            msg.message = APP_MSG_APREADY;
+          } else {
+            msg.message = APP_MSG_APNOTREADY;
           }
           if (NOA_RGB_TASKQUEUE != NULL) {
             xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);

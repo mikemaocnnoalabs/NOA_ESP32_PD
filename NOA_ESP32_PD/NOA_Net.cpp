@@ -43,11 +43,13 @@ const char* password="12345678";  //passwd for default SSID
 // const char* ssid1="NOASNA_0000000000";        //default AP SSID
 const char* password1="87654321"; //passwd for default AP SSID
 #define NOA_ESP32_HOST_NAME  "NOA_SNACKER_ESP32"
-
+uint8_t nAP_Sta_Numbers = 0;
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
 void WiFiEvent(WiFiEvent_t event){
+  NOA_PUB_MSG msg;
+  memset(&msg, 0, sizeof(NOA_PUB_MSG));
   switch(event) {
     case SYSTEM_EVENT_AP_START:
       Serial.println("AP Started");
@@ -56,9 +58,32 @@ void WiFiEvent(WiFiEvent_t event){
       WiFi.setHostname(NOA_ESP32_HOST_NAME);
       Serial.print("AP IPv4:");
       Serial.println(WiFi.softAPIP());
+      msg.message = APNET_MSG_READY;
+      if (NOA_APP_TASKQUEUE != NULL) {
+        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+      }
       break;
     case SYSTEM_EVENT_AP_STOP:
       Serial.println("AP Stopped");
+      msg.message = APNET_MSG_NOTREADY;
+      if (NOA_APP_TASKQUEUE != NULL) {
+        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+      }
+      break;
+    case SYSTEM_EVENT_AP_STACONNECTED:
+      Serial.println("AP Sta Connected");
+      nAP_Sta_Numbers = WiFi.softAPgetStationNum() - 1;
+      Serial.print("AP Sta Num:");
+      Serial.println(nAP_Sta_Numbers);
+      break;
+    case SYSTEM_EVENT_AP_STADISCONNECTED:
+      Serial.println("AP Sta Disconnected");
+      nAP_Sta_Numbers = WiFi.softAPgetStationNum() - 1;
+      Serial.print("AP Sta Num:");
+      Serial.println(nAP_Sta_Numbers);
+      break;
+    case SYSTEM_EVENT_AP_STAIPASSIGNED:
+      Serial.println("AP Sta Passigned");
       break;
     case SYSTEM_EVENT_STA_START:
       Serial.println("STA Started");
@@ -74,14 +99,24 @@ void WiFiEvent(WiFiEvent_t event){
     case SYSTEM_EVENT_STA_GOT_IP:
       Serial.print("STA IPv4: ");
       Serial.println(WiFi.localIP());
+
+      msg.message = NET_MSG_READY;
+      if (NOA_APP_TASKQUEUE != NULL) {
+        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+      }
       break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
       Serial.println("STA Disconnected");
+      msg.message = NET_MSG_NOTREADY;
+      if (NOA_APP_TASKQUEUE != NULL) {
+        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+      }
       break;
     case SYSTEM_EVENT_STA_STOP:
       Serial.println("STA Stopped");
       break;
     default:
+      Serial.println(event, HEX);
       break;
   }
 }
@@ -160,11 +195,6 @@ void WIFI_Test_Task_Loop( void * pvParameters ){
 //  Serial.println(WiFi.softAPgetHostname());
   Serial.printf("STA mac: %s\r\n", WiFi.macAddress().c_str());
   Serial.printf(" AP mac: %s\r\n", WiFi.softAPmacAddress().c_str());
-
-  NOA_PUB_MSG msg;
-  memset(&msg, 0, sizeof(NOA_PUB_MSG));
-  msg.message = NET_MSG_READY;
-  xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
   nStatus_WiFiTesting = 1;
 
   Iperf_Server.begin(5001);

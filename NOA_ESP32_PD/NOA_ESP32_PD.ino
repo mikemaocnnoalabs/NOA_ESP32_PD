@@ -10,7 +10,7 @@
 #include "NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.0.9"
+#define NOA_ESP32_PD_VERSION "0.0.1.0"
 #else
 #define NOA_ESP32_PD_VERSION "0.1.0.8"
 #endif
@@ -54,7 +54,10 @@ const uint8_t NFC_ADDR = 0x29;
 const int mfrc_630_nfc_int_pin = 5;  // init pin for NFC
 const int mfrc_630_nfc_pdown_pin = 4;  // init pin for NFC
 Adafruit_OM9663 rfid_nfc = Adafruit_OM9663(1, OM9663_I2C_ADDR, mfrc_630_nfc_pdown_pin);
-
+static bool NFC_Status_new = false;
+static bool NFC_Status_old = false;
+static uint32_t nTime_new = 0;
+static uint32_t nTime_old = 0;
 #else
 const int usb_pd_snk_int_pin = 38;  // init pin for PD snk(P1)
 const int usb_pd_snk_sel_pin = 14;  // sel pin for PD snk(P1)
@@ -155,6 +158,7 @@ void Uart_Print_Info() {
 TaskHandle_t  Main_Task = NULL;
 StackType_t   TaskStackBuffer[SIZE_OF_STACK];
 StaticTask_t  TaskTCBBuffer;
+static bool bMain_Task = false;
 
 void start_vTask(void * pvParameters) {
   NEO_Pixel_init();   // Init RGB pixel
@@ -164,7 +168,8 @@ void start_vTask(void * pvParameters) {
   NOA_Net_init();     // Init NOA Net App
   vTaskDelay(2000/portTICK_PERIOD_MS);
 //  NOA_NFC_init(); // Init NOA NFC App
-//  vTaskDelay(2000/portTICK_PERIOD_MS);  
+//  vTaskDelay(2000/portTICK_PERIOD_MS);
+  bMain_Task = true;
   vTaskDelete(NULL);
 }
 #endif
@@ -212,7 +217,7 @@ void setup() {
     DBGLOG(Info,"Initialize the MFRC630 Success!");
     OM9663_fifo_clear_test();
     OM9663_fifo_write_test();
-    OM9663_fifo_read_test();
+//    OM9663_fifo_read_test();
   }
  
   pd_init(0); // init pd snk
@@ -317,7 +322,28 @@ void loop() {
 //      DBGLOG(Info, "PD init pin LOW");
       }
       pd_run_state_machine(1, 0);
-    }    
+    }
+
+    if (bMain_Task == true) {
+      nTime_new = millis()/1000;
+      if (nTime_new != nTime_old) {
+        nTime_old = nTime_new;
+        NFC_Status_new = radio_mifare1K_dump_minimal();
+        if (NFC_Status_new != NFC_Status_old) {
+          NFC_Status_old = NFC_Status_new;
+          NOA_PUB_MSG msg;
+          memset(&msg, 0, sizeof(NOA_PUB_MSG));
+          if (NFC_Status_old == true) {
+            msg.message = NFC_MSG_READY;
+          } else {
+            msg.message = NFC_MSG_NOTREADY;
+          }
+          if (NOA_APP_TASKQUEUE != NULL) {
+            xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+          }
+        }
+      }
+    }
   }
 
   // For some reason, a delay of 4 ms seems to be best
