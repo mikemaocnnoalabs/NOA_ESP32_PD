@@ -8,7 +8,7 @@
 
 #include "tcpm_driver.h"
 #include "NCP81239.h"
-#include "NOA_public.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 //****************************************************************************
 // CODE TABLES

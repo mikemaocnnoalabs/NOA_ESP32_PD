@@ -3,26 +3,26 @@
 #include <Esp.h>
 #include <ESP32AnalogRead.h>
 
-#include "usb_pd.h"
-#include "NCP81239.h"
+#include "src\DRV\PDM\usb_pd.h"
+#include "src\DRV\PDM\NCP81239.h"
 
-#include "NOA_TimeDefs.h"
-#include "NOA_public.h"
+#include "src\LIB\PUB\NOA_TimeDefs.h"
+#include "src\LIB\PUB\NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.1.0"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.0.8"
+#define NOA_ESP32_PD_VERSION "0.1.1.0"
 #endif
 
 extern int const usb_pd_snk_sel_pin;
 
 #ifdef NOA_PD_SNACKER
-#include "Adafruit_OM9663.h"
-#include "NOA_App.h"
-#include "NOA_Net.h"
-#include "NEOPixel.h"
-#include "NOA_NFC.h"
+#include "src\DRV\NFC\Adafruit_OM9663.h"
+#include "src\DRV\NFC\NOA_NFC.h"
+#include "src\APP\NOA_App.h"
+#include "src\NET\NOA_Net.h"
+#include "src\UI\NEOPixel.h"
 
 const int usb_pd_snk_int_pin = 32;    // init pin for PD snk
 const int usb_pd_snk_sel_pin = 33;    // sel pin for PD snk
@@ -103,7 +103,7 @@ static int pd_sink_port_ready = 0;
 static int pd_sink_port_default_valtage = 0;
 static int pd_source_port_ready = 0;
 
-static int wireless_charger_port_ready = 0;
+// static int wireless_charger_port_ready = 0;
 
 // This banner is checked the memmory of MCU platform
 const char NOA_Banner[] = {0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\

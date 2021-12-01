@@ -9,9 +9,9 @@
 #include "usb_pd_tcpm.h"
 #include "tcpm.h"
 #include "usb_pd.h"
-#include "platform.h"
 
-#include "NOA_public.h"
+#include "..\..\LIB\PUB\platform.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 #ifdef NOA_PD_SNACKER
 extern int const usb_pd_snk_sel_pin;

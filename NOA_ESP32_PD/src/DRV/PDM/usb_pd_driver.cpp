@@ -10,7 +10,7 @@
 #include "usb_pd.h"
 
 #include "NCP81239.h"
-#include "NOA_public.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(t) (sizeof(t) / sizeof(t[0]))

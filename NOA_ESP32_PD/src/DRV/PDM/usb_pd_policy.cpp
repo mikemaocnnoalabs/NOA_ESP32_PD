@@ -8,7 +8,7 @@
 #include "tcpm.h"
 #include "usb_pd.h"
 
-#include "NOA_public.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 #ifdef CONFIG_COMMON_RUNTIME
 #define CPRINTS(format, args...) cprints(CC_USBPD, format, ## args)
@@ -865,21 +865,20 @@ int pd_vdm(int port, int cnt, uint32_t *payload, uint32_t **rpayload)
 }
 #endif /* !CONFIG_USB_PD_CUSTOM_VDM */
 
-static void pd_usb_billboard_deferred(void)
-{
-#if defined(CONFIG_USB_PD_ALT_MODE) && !defined(CONFIG_USB_PD_ALT_MODE_DFP) \
-	&& !defined(CONFIG_USB_PD_SIMPLE_DFP) && defined(CONFIG_USB_BOS)
+// static void pd_usb_billboard_deferred(void)
+// {
+// #if defined(CONFIG_USB_PD_ALT_MODE) && !defined(CONFIG_USB_PD_ALT_MODE_DFP) && !defined(CONFIG_USB_PD_SIMPLE_DFP) && defined(CONFIG_USB_BOS)
 
-	/*
-	 * TODO(tbroch)
-	 * 1. Will we have multiple type-C port UFPs
-	 * 2. Will there be other modes applicable to DFPs besides DP
-	 */
-	if (!pd_alt_mode(0, USB_SID_DISPLAYPORT))
-		usb_connect();
+//	/*
+//	 * TODO(tbroch)
+//	 * 1. Will we have multiple type-C port UFPs
+//	 * 2. Will there be other modes applicable to DFPs besides DP
+//	 */
+//	if (!pd_alt_mode(0, USB_SID_DISPLAYPORT))
+//		usb_connect();
 
-#endif
-}
+// #endif
+// }
 // DECLARE_DEFERRED(pd_usb_billboard_deferred); // mike disabled
 
 #ifdef CONFIG_USB_PD_ALT_MODE_DFP
