@@ -8,10 +8,11 @@
 #include <Esp.h>
 
 #include "Adafruit_OM9663.h"
-#include "usb_pd.h"
 #include "NOA_NFC.h"
-#include "NOA_App.h"
-#include "NOA_public.h"
+
+#include "..\PDM\usb_pd.h"
+#include "..\..\APP\NOA_App.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 // extern int const nxp_om9663_nfc_pdown_pin;
 // Adafruit_OM9663 rfid_nfc = Adafruit_OM9663(1, OM9663_I2C_ADDR, nxp_om9663_nfc_pdown_pin);

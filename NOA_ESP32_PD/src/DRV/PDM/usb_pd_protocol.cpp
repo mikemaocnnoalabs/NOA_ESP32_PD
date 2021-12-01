@@ -10,7 +10,7 @@
 #include "tcpm.h"
 #include "usb_pd_driver.h"
 
-#include "NOA_public.h"
+#include "..\..\LIB\PUB\NOA_public.h"
 
 #ifdef CONFIG_COMMON_RUNTIME
 #define CPRINTF(format, args...) cprintf(CC_USBPD, format, ## args)

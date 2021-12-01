@@ -7,10 +7,11 @@
 #include <Esp.h>
 #include <WiFi.h>
 
-#include "usb_pd.h"
-#include "NOA_App.h"
+#include "..\DRV\PDM\usb_pd.h"
+#include "..\APP\NOA_App.h"
+#include "..\LIB\PUB\NOA_public.h"
+
 #include "NOA_Net.h"
-#include "NOA_public.h"
 
 #define SIZE_OF_NET_STACK  SIZE_OF_STACK * 4
 

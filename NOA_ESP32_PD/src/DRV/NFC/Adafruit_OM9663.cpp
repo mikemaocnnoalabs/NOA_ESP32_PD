@@ -24,10 +24,9 @@
  *
  * BSD license, all text above must be included in any redistribution
  */
+#include "..\..\LIB\PUB\NOA_public.h"
 
 #include "Adafruit_OM9663.h"
-
-#include "NOA_public.h"
 
 /* Debug output level */
 /*

@@ -10,14 +10,17 @@
 #include <Esp.h>
 #include <ESP32AnalogRead.h>
 
-#include "usb_pd.h"
-#include "NCP81239.h"
-#include "NEOPixel.h"
-#include "NOA_NFC.h"
+#include "..\DRV\PDM\usb_pd.h"
+#include "..\DRV\PDM\NCP81239.h"
+#include "..\DRV\NFC\NOA_NFC.h"
 
-#include "NOA_App.h"
-#include "NOA_Net.h"
-#include "NOA_public.h"
+#include "..\LIB\PUB\NOA_public.h"
+
+#include "..\UI\NEOPixel.h"
+
+#include "..\APP\NOA_App.h"
+#include "..\NET\NOA_Net.h"
+
 
 #define SIZE_OF_APP_STACK  SIZE_OF_STACK * 4
 // extern ESP32AnalogRead ncp_bb_con9v_tempadc;

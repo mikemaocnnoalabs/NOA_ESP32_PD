@@ -7,11 +7,12 @@
 #include <Esp.h>
 #include <Adafruit_NeoPixel.h>
 
-#include "usb_pd.h"
-#include "NCP81239.h"
+#include "..\DRV\PDM\usb_pd.h"
+#include "..\DRV\PDM\NCP81239.h"
+#include "..\LIB\PUB\NOA_public.h"
+#include "..\APP\NOA_App.h"
+
 #include "NEOPixel.h"
-#include "NOA_App.h"
-#include "NOA_public.h"
 
 // Which pin on the Arduino is connected to the NeoPixels?
 // On a Trinket or Gemma we suggest changing this to 1
