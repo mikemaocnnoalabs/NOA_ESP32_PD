@@ -57,7 +57,7 @@ void RGB_Light_Test_Task_Loop( void * pvParameters ){
 //  theaterChaseRainbow(50);
 //  NEO_Pixel_Clear();
   
-  DBGLOG(Info, "RGB_Light_Task_Loop Exit from core %d", xPortGetCoreID());
+  DBGLOG(Info, "RGB_Light_Test_Task_Loop Exit from core %d", xPortGetCoreID());
 
 //  uint32_t msg = 0;
 //  msg = RGB_MSG_READY;

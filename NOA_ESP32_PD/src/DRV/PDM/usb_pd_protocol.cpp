@@ -45,7 +45,7 @@ static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
-static const int debug_level = 0;
+static const int debug_level = 2;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -132,6 +132,7 @@ static int hard_reset_count[CONFIG_USB_PD_PORT_COUNT] = {0}, hard_reset_sent[CON
 static int snk_cap_count = 0;
 static int evt = 0;
 static int snk_is_hub = 0;
+extern uint8_t pd_src_cap_cnt[CONFIG_USB_PD_PORT_COUNT];
 
 enum vdm_states {
   VDM_STATE_ERR_BUSY = -3,
@@ -1008,8 +1009,7 @@ static int pd_send_request_msg(int port, int always_send_request)
 #endif
 	}
 
-	CPRINTF("Req C%d [%d] %dmV %dmA", port, RDO_POS(rdo),
-		supply_voltage, curr_limit);
+	CPRINTF("Req C%d [%d] %dmV %dmA", port, RDO_POS(rdo), supply_voltage, curr_limit);
 	if (rdo & RDO_CAP_MISMATCH)
 		CPRINTF(" Mismatch");
 //	CPRINTF("\n");
@@ -1107,29 +1107,25 @@ static void handle_data_request(int port, uint16_t head,
 			if (PD_HEADER_REV(head) < pd[port].rev)
 				pd[port].rev = PD_HEADER_REV(head);
 #endif
-			/* Port partner is now known to be PD capable */
-			pd[port].flags |= PD_FLAGS_PREVIOUS_PD_CONN;
+            /* Port partner is now known to be PD capable */
+            pd[port].flags |= PD_FLAGS_PREVIOUS_PD_CONN;
 
-			/* src cap 0 should be fixed PDO */
-			pd_update_pdo_flags(port, payload[0]);
-
-			pd_process_source_cap(port, cnt, payload);
-
-      /* Source will resend source cap on failure */
-      // If this delay is not present, 
-      // the FUSB302B will NAK during a write
-      // This value seems to work best empirically. 
-      delayMicroseconds(1200);
-
-			/* Source will resend source cap on failure */
-      int rv = 0;
-			rv = pd_send_request_msg(port, 1);
-      CPRINTF("C%d send_request_msg rv = %d", port, rv);
-      
-      // We call the callback after we send the request
-      // because the timing on Request seems to be sensitive
-      // User code can take the time until PS_RDY to do stuff
-      // pd_process_source_cap_callback(port, cnt, payload);  // mike disable
+            /* src cap 0 should be fixed PDO */
+            pd_update_pdo_flags(port, payload[0]);
+            pd_process_source_cap(port, cnt, payload);
+            /* Source will resend source cap on failure */
+            // If this delay is not present, 
+            // the FUSB302B will NAK during a write
+            // This value seems to work best empirically. 
+            delayMicroseconds(1200);
+            /* Source will resend source cap on failure */
+            int rv = 0;
+            rv = pd_send_request_msg(port, 1);
+            CPRINTF("C%d send_request_msg rv = %d cnt = %d", port, rv, cnt);
+            // We call the callback after we send the request
+            // because the timing on Request seems to be sensitive
+            // User code can take the time until PS_RDY to do stuff
+            // pd_process_source_cap_callback(port, cnt, payload);  // mike disable
 		}
 		break;
 #endif /* CONFIG_USB_PD_DUAL_ROLE */
@@ -1293,11 +1289,9 @@ static void pd_dr_swap(int port)
 	pd[port].flags |= PD_FLAGS_CHECK_IDENTITY;
 }
 
-static void handle_ctrl_request(int port, uint16_t head,
-		uint32_t *payload)
+static void handle_ctrl_request(int port, uint16_t head, uint32_t *payload)
 {
 	int type = PD_HEADER_TYPE(head);
-  int cnt = PD_HEADER_CNT(head);
 //  CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
 	int res = -1;
 
@@ -1332,8 +1326,7 @@ static void handle_ctrl_request(int port, uint16_t head,
 			 * by sending a new source cap message at a
 			 * later time.
 			 */
-			pd_snk_give_back(port, &pd[port].curr_limit,
-				&pd[port].supply_voltage);
+			pd_snk_give_back(port, &pd[port].curr_limit, &pd[port].supply_voltage);
 			set_state(port, PD_STATE_SNK_TRANSITION);
 		}
 #endif
@@ -1365,12 +1358,12 @@ static void handle_ctrl_request(int port, uint16_t head,
 		} else if (pd[port].power_role == PD_ROLE_SINK) {
 			set_state(port, PD_STATE_SNK_READY);
 			pd_set_input_current_limit(port, pd[port].curr_limit, pd[port].supply_voltage);
-      pd_process_source_cap_callback(port, cnt, payload);
+            CPRINTF("C%d PD curr_limit %d supply_voltage %d", port, pd[port].curr_limit, pd[port].supply_voltage);
+            uint32_t hub_pdo = PDO_FIXED(pd[port].supply_voltage, pd[port].curr_limit, PDO_FIXED_FLAGS);
+            pd_process_source_cap_callback(port, pd_src_cap_cnt[port], &hub_pdo);
 #ifdef CONFIG_CHARGE_MANAGER
 			/* Set ceiling based on what's negotiated */
-			//charge_manager_set_ceil(port,
-			//			CEIL_REQUESTOR_PD,
-			//			pd[port].curr_limit);
+			// charge_manager_set_ceil(port, CEIL_REQUESTOR_PD, pd[port].curr_limit);
 #endif
 		}
 		break;
@@ -1557,10 +1550,8 @@ static void handle_ext_request(int port, uint16_t head, uint32_t *payload)
 }
 #endif
 
-static void handle_request(int port, uint16_t head,
-		uint32_t *payload)
-{
-	int cnt = PD_HEADER_CNT(head);
+static void handle_request(int port, uint16_t head, uint32_t *payload) {
+  int cnt = PD_HEADER_CNT(head);
   int type = PD_HEADER_TYPE(head);
 //	int p = 0;
   if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
@@ -1875,32 +1866,32 @@ static int pd_is_power_swapping(int port)
  * Provide Rp to ensure the partner port is in a known state (eg. not
  * PD negotiated, not sourcing 20V).
  */
-static void pd_partner_port_reset(int port)
-{
-	uint64_t timeout;
-
-#ifdef CONFIG_BBRAM
-	/*
-	 * Check our battery-backed previous port state. If PD comms were
-	 * active, and we didn't just lose power, make sure we
-	 * don't boot into RO with a pre-existing power contract.
-	 */
-	if (!pd_get_saved_active(port) ||
-	   system_get_image_copy() != SYSTEM_IMAGE_RO ||
-	   system_get_reset_flags() &
-	   (RESET_FLAG_BROWNOUT | RESET_FLAG_POWER_ON))
-		return;
-#endif // CONFIG_BBRAM
-	/* Provide Rp for 100 msec. or until we no longer have VBUS. */
-	tcpm_set_cc(port, TYPEC_CC_RP);
-	timeout = get_time().val + 100 * MSEC_US;
-
-	while (get_time().val < timeout && pd_is_vbus_present(port))
-		msleep(10);
-#ifdef CONFIG_BBRAM
-	pd_set_saved_active(port, 0);
-#endif
-}
+//static void pd_partner_port_reset(int port)
+//{
+//	uint64_t timeout;
+//
+//#ifdef CONFIG_BBRAM
+//	/*
+//	 * Check our battery-backed previous port state. If PD comms were
+//	 * active, and we didn't just lose power, make sure we
+//	 * don't boot into RO with a pre-existing power contract.
+//	 */
+//	if (!pd_get_saved_active(port) ||
+//	   system_get_image_copy() != SYSTEM_IMAGE_RO ||
+//	   system_get_reset_flags() &
+//	   (RESET_FLAG_BROWNOUT | RESET_FLAG_POWER_ON))
+//		return;
+//#endif // CONFIG_BBRAM
+//	/* Provide Rp for 100 msec. or until we no longer have VBUS. */
+//	tcpm_set_cc(port, TYPEC_CC_RP);
+//	timeout = get_time().val + 100 * MSEC_US;
+//
+//	while (get_time().val < timeout && pd_is_vbus_present(port))
+//		msleep(10);
+//#ifdef CONFIG_BBRAM
+//	pd_set_saved_active(port, 0);
+//#endif
+//}
 #endif /* CONFIG_USB_PD_DUAL_ROLE */
 
 int pd_get_polarity(int port)
@@ -2969,19 +2960,17 @@ void pd_run_state_machine(int port, int reset)
 			if (pd[port].last_state != PD_STATE_SNK_DISCONNECTED_DEBOUNCE)
 				typec_curr = 0;
 #endif
-		} 
-		else {
-      tcpm_get_cc(port, &cc1, &cc2);
-      if ((cc1 == TYPEC_CC_VOLT_SNK_DEF || cc2 == TYPEC_CC_VOLT_SNK_DEF) && hard_reset_count[port] == PD_HARD_RESET_COUNT) {
-        if (snk_is_hub == 0) {
-          CPRINTF("C%d cc1 = %d cc2 = %d snk_is_hub = %d", port, cc1, cc2, snk_is_hub);
-          uint32_t hub_valtage = 5;
-//          pd_process_source_cap_callback(port, 1, NULL);
-          pd_process_source_cap_callback(port, 1, &hub_valtage);
-          snk_is_hub = 1;
+		} else {
+          tcpm_get_cc(port, &cc1, &cc2);
+          if ((cc1 == TYPEC_CC_VOLT_SNK_DEF || cc2 == TYPEC_CC_VOLT_SNK_DEF || cc1 == TYPEC_CC_VOLT_SNK_1_5 || cc2 == TYPEC_CC_VOLT_SNK_1_5 || cc1 == TYPEC_CC_VOLT_SNK_3_0 || cc2 == TYPEC_CC_VOLT_SNK_3_0) && hard_reset_count[port] == PD_HARD_RESET_COUNT) {
+            if (snk_is_hub == 0) {
+              CPRINTF("C%d cc1 = %d cc2 = %d snk_is_hub = %d", port, cc1, cc2, snk_is_hub);
+              uint32_t hub_pdo = PDO_FIXED(5000, 500, PDO_FIXED_FLAGS);
+              pd_process_source_cap_callback(port, 1, &hub_pdo);
+              snk_is_hub = 1;
+            }
+          }
         }
-      }
-		}
 
 #if defined(CONFIG_CHARGE_MANAGER)
 		timeout = PD_T_SINK_ADJ - PD_T_DEBOUNCE;
@@ -3464,38 +3453,38 @@ void pd_run_state_machine(int port, int reset)
 }
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
-static void dual_role_on(void)
-{
-	int i;
-
-	for (i = 0; i < CONFIG_USB_PD_PORT_COUNT; i++) {
-#ifdef CONFIG_CHARGE_MANAGER
-		//if (charge_manager_get_active_charge_port() != i)
-#endif
-			pd[i].flags |= PD_FLAGS_CHECK_PR_ROLE |
-				       PD_FLAGS_CHECK_DR_ROLE;
-
-		pd[i].flags |= PD_FLAGS_CHECK_IDENTITY;
-	}
-
-	pd_set_dual_role(PD_DRP_TOGGLE_ON);
-	CPRINTS("chipset -> S0");
-}
+//static void dual_role_on(void)
+//{
+//	int i;
+//
+//	for (i = 0; i < CONFIG_USB_PD_PORT_COUNT; i++) {
+//#ifdef CONFIG_CHARGE_MANAGER
+//		//if (charge_manager_get_active_charge_port() != i)
+//#endif
+//			pd[i].flags |= PD_FLAGS_CHECK_PR_ROLE |
+//				       PD_FLAGS_CHECK_DR_ROLE;
+//
+//		pd[i].flags |= PD_FLAGS_CHECK_IDENTITY;
+//	}
+//
+//	pd_set_dual_role(PD_DRP_TOGGLE_ON);
+//	CPRINTS("chipset -> S0");
+//}
 // DECLARE_HOOK(HOOK_CHIPSET_RESUME, dual_role_on, HOOK_PRIO_DEFAULT);  // mike disabled
 
-static void dual_role_off(void)
-{
-	pd_set_dual_role(PD_DRP_TOGGLE_OFF);
-	CPRINTS("chipset -> S3");
-}
+//static void dual_role_off(void)
+//{
+//	pd_set_dual_role(PD_DRP_TOGGLE_OFF);
+//	CPRINTS("chipset -> S3");
+//}
 // DECLARE_HOOK(HOOK_CHIPSET_SUSPEND, dual_role_off, HOOK_PRIO_DEFAULT);  // mike disabled
 // DECLARE_HOOK(HOOK_CHIPSET_STARTUP, dual_role_off, HOOK_PRIO_DEFAULT);  // mike disabled
 
-static void dual_role_force_sink(void)
-{
-	pd_set_dual_role(PD_DRP_FORCE_SINK);
-	CPRINTS("chipset -> S5");
-}
+//static void dual_role_force_sink(void)
+//{
+//	pd_set_dual_role(PD_DRP_FORCE_SINK);
+//	CPRINTS("chipset -> S5");
+//}
 // DECLARE_HOOK(HOOK_CHIPSET_SHUTDOWN, dual_role_force_sink, HOOK_PRIO_DEFAULT);  // mike disable
 
 #endif /* CONFIG_USB_PD_DUAL_ROLE */
