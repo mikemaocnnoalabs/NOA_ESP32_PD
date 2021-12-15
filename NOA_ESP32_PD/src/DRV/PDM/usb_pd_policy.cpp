@@ -24,8 +24,8 @@ extern int pd_source_cap_max_index;
 // static int rw_flash_changed = 1;
 
 /* Last received source cap */
-static uint32_t pd_src_caps[CONFIG_USB_PD_PORT_COUNT][PDO_MAX_OBJECTS];
-static uint8_t pd_src_cap_cnt[CONFIG_USB_PD_PORT_COUNT];
+uint32_t pd_src_caps[CONFIG_USB_PD_PORT_COUNT][PDO_MAX_OBJECTS];
+uint8_t pd_src_cap_cnt[CONFIG_USB_PD_PORT_COUNT] = {0};
 
 /* Cap on the max voltage requested as a sink (in millivolts) */
 static unsigned max_request_mv = PD_MAX_VOLTAGE_MV; /* no cap */
@@ -147,9 +147,8 @@ int pd_find_pdo_index(int port, int max_mv, uint32_t *selected_pdo)
 	if (selected_pdo)
 		*selected_pdo = src_caps[ret];
 #endif
-  if (selected_pdo)
-    *selected_pdo = src_caps[pd_source_cap_current_index];
-  
+//  if (selected_pdo)       // mike disable 20211209
+//    *selected_pdo = src_caps[pd_source_cap_current_index];
 	return ret;
 }
 
@@ -258,6 +257,7 @@ void pd_process_source_cap(int port, int cnt, uint32_t *src_caps)
 	/* Get max power info that we could request */
 	pd_source_cap_current_index = pd_find_pdo_index(port, PD_MAX_VOLTAGE_MV, &pdo);
 	pd_extract_pdo_power(pdo, &ma, &mv);
+    CPRINTF("Port[%d] cap current index %d mv: %d ma: %d", port, pd_source_cap_current_index, mv, ma);
 
 	/* Set max. limit, but apply 500mA ceiling */
 	//charge_manager_set_ceil(port, CEIL_REQUESTOR_PD, PD_MIN_MA);

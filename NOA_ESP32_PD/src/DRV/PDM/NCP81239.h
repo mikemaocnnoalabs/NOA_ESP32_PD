@@ -59,14 +59,14 @@ extern "C" {
 #define _ADDR_01_VBUS                       0x32    // 5V
 #define _ADDR_02_SLEW_RATE                  0x00
 #define _ADDR_03_PWM_FREQ                   0x00    // 600 kHZ
-// #define _ADDR_05_OCP_CLIM_POS               0x03    //
-// #define _ADDR_05_OCP_CLIM_POS               0x00    //
-#define _ADDR_05_OCP_CLIM_POS               0x03
-#define _ADDR_05_OCP_CLIM_NEG               0x00
-#define _ADDR_06_CS1_CLIND                  0x03    // 11
-#define _ADDR_06_CS2_CLIND                  0x03    // 11
-// #define _ADDR_06_CS1_CLIND                  0x00    // 11
-// #define _ADDR_06_CS2_CLIND                  0x00    // 11
+#define _ADDR_05_OCP_CLIM_POS               0x00    // 00
+#define _ADDR_05_OCP_CLIM_NEG               0x00    // 00
+// #define _ADDR_05_OCP_CLIM_POS               0x03    // 11
+// #define _ADDR_05_OCP_CLIM_NEG               0x00    // 00
+// #define _ADDR_06_CS1_CLIND                  0x03    // 11
+// #define _ADDR_06_CS2_CLIND                  0x03    // 11
+#define _ADDR_06_CS1_CLIND                  0x00    // 00
+#define _ADDR_06_CS2_CLIND                  0x00    // 00
 #define _ADDR_09_INT_MASK_CS_CLIND          0x00
 #define _ADDR_09_INT_MASK_OVP               0x00
 #define _ADDR_09_INT_MASK_OCP_P             0x00

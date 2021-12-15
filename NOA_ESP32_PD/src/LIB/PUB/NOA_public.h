@@ -15,6 +15,12 @@
 extern "C" {
 #endif
 
+#ifdef NOA_PD_SNACKER
+#define NOA_ESP32_PD_VERSION "0.0.1.1"
+#else
+#define NOA_ESP32_PD_VERSION "0.1.1.0"
+#endif
+
 #define SIZE_OF_TASK_QUEUE  16
 #define SIZE_OF_STACK       2048
 

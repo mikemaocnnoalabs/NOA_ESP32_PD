@@ -238,9 +238,9 @@ void Adafruit_OM9663::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
 /**************************************************************************/
 byte Adafruit_OM9663::read8(byte reg) {
   uint8_t resp = 0;
-  uint8_t tx[2] = {0};
-  uint8_t rx[2] = {0};
-  uint8_t timeout = 0xFF;
+//  uint8_t tx[2] = {0};
+//  uint8_t rx[2] = {0};
+//  uint8_t timeout = 0xFF;
 
   CPRINTF("Requesting 1 byte from 0x%02X", reg);
 
@@ -276,13 +276,13 @@ byte Adafruit_OM9663::read8(byte reg) {
       Wire.beginTransmission(_i2c_addr);
       Wire.write(reg);
       Wire.endTransmission(false);
-      Wire.requestFrom(_i2c_addr, (uint8_t)1, true); 
+      Wire.requestFrom((uint16_t)_i2c_addr, (uint8_t)1, true); 
       resp = Wire.read();
     } else {
       Wire1.beginTransmission(_i2c_addr);
       Wire1.write(reg);
       Wire1.endTransmission(false);
-      Wire1.requestFrom((uint8_t)_i2c_addr, (uint8_t)1, true);
+      Wire1.requestFrom((uint16_t)_i2c_addr, (uint8_t)1, true);
       resp = Wire1.read();
     }
     break;
