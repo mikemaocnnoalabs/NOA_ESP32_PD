@@ -128,7 +128,7 @@ void RGB_Light_Task_Loop( void * pvParameters ){
         nStatus[1] = 0; 
         break;
       case APP_MSG_WIRELESSREADY:
-        nStatus[2] = 1;
+        nStatus[2] = 3; // default is 9V
         break;
       case APP_MSG_WIRELESSNOTREADY:
         nStatus[2] = 0;

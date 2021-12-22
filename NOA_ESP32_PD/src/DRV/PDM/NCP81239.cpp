@@ -53,8 +53,8 @@ StructNCP81239RegisterMap g_stPmicInitialData =
     0x05,                              // High Amp GM value
     0x00,                              // register of amp gm config
 
-    0x00,                              // ADC Trigger
-    0x00,                              // ADC MUX select
+    _ADDR_08_ADC_AMUX_TRIGGER,         // ADC Trigger
+    _ADDR_08_ADC_AMUX_SEL,             // ADC MUX select
     0x00,                              // ADC is enable
     0x00,                              // Reserved
 
@@ -180,9 +180,49 @@ int     ncp81239_pmic_init(int port) {
 #endif
   return 0;
 }
-
+int ncp81239_pmic_set_int_mask(int port) {
+  uint8_t ucResult = 0;
+  g_stPMICData[port].b1CR09IntMaskCsClind = 1;
+  g_stPMICData[port].b1CR09IntMaskI2cAck = 1;
+  g_stPMICData[port].b1CR09IntMaskOcpP = 1;
+  g_stPMICData[port].b1CR09IntMaskOv = 1;
+  g_stPMICData[port].b1CR09IntMaskPg = 1;
+  g_stPMICData[port].b1CR09IntMaskTsd = 1;
+  g_stPMICData[port].b1CR09IntMaskUv = 1;
+  g_stPMICData[port].b1CR09IntMaskVchn = 1;
+#ifdef NOA_PD_SNACKER
+    if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+      return -1;
+    }
+    switch (port) {
+      case 1:
+        NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG09, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG09, 1); 
+        break;
+      case 2:
+        NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG09, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG09, 1);
+        break;
+    }
+#else
+    if(port < 1 || port > 3) {  // support 1 - 3 port only
+      return -1;
+    }
+    switch (port) {
+      case 1:
+        NOA_PUB_I2C_SendBytes(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG09, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG09, 1); 
+        break;
+      case 2:
+        NOA_PUB_I2C_SendBytes(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG09, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG09, 1);
+        break;
+      case 3:
+        NOA_PUB_I2C_SendBytes(1, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG09, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG09, 1);
+        break;
+    }
+#endif
+  return ucResult;
+}
 int ncp81239_pmic_get_tatus(int port) {
   uint8_t ucResult = 0;
+  ncp81239_pmic_set_int_mask(port);
 #ifdef NOA_PD_SNACKER
   if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
     return -1;
@@ -367,6 +407,7 @@ int ncp81239_pmic_reset(int port) {
     tcpm_get_cc(port, &cc1, &cc2);
 //    DBGLOG(Info, "Port %d CC1 %d CC2 %d", port, cc1, cc2);
   }
+  ncp81239_pmic_set_tatus(port);  // can't add this to statsion board
 #else
   if(port < 1 || port > 3) {  // support 1 - 3 port only
     return -1;
@@ -375,7 +416,6 @@ int ncp81239_pmic_reset(int port) {
   g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
   g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
   g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
-//  g_stPMICData[port].b4CR00Reserved = g_stPmicInitialData.b4CR00Reserved;
 
   int cc1 = 0, cc2 = 0;
   tcpm_get_cc(port, &cc1, &cc2);
@@ -397,52 +437,16 @@ int ncp81239_pmic_reset(int port) {
     g_stPMICData[port].ucCR01DacTarget = g_stPmicInitialData.ucCR01DacTarget;
   }
 
-//  g_stPMICData[port].b2CR02SlewRate =  g_stPmicInitialData.b2CR02SlewRate;
-//  g_stPMICData[port].b6CR02Reserved = g_stPmicInitialData.b6CR02Reserved;
-  
-//  g_stPMICData[port].b3CR03PwmFreq = g_stPmicInitialData.b3CR03PwmFreq;
-//  g_stPMICData[port].b1CR03Reserved1 = g_stPmicInitialData.b1CR03Reserved1;
-//  g_stPMICData[port].b1CR03DacLsb = g_stPmicInitialData.b1CR03DacLsb;
-//  g_stPMICData[port].b3CR03Reserved2 = g_stPmicInitialData.b3CR03Reserved2;
-  
-//  g_stPMICData[port].b1CR04Pfet = g_stPmicInitialData.b1CR04Pfet;
-//  g_stPMICData[port].b1CR04Cfet = g_stPmicInitialData.b1CR04Cfet;
-//  g_stPMICData[port].b1CR04DeadBatteryEn = g_stPmicInitialData.b1CR04DeadBatteryEn;
-//  g_stPMICData[port].b1CR04Reserved1 = g_stPmicInitialData.b1CR04Reserved1;
-//  g_stPMICData[port].b1CR04Cs1DisCharge = g_stPmicInitialData.b1CR04Cs1DisCharge;
-//  g_stPMICData[port].b1CR04Cs2DisCharge = g_stPmicInitialData.b1CR04Cs2DisCharge;
-//  g_stPMICData[port].b2CR04Reserved2 = g_stPmicInitialData.b2CR04Reserved2;
   
   g_stPMICData[port].b2CR05OcpClimPos = g_stPmicInitialData.b2CR05OcpClimPos;
-//  g_stPMICData[port].b2CR05Reserved1 = g_stPmicInitialData.b2CR05Reserved1;
   g_stPMICData[port].b2CR05OcpClimNeg = g_stPmicInitialData.b2CR05OcpClimNeg;
-//  g_stPMICData[port].b2CR05Reserved2 = g_stPmicInitialData.b2CR05Reserved2;
-  
+
   g_stPMICData[port].b2CR06Cs1Clind = g_stPmicInitialData.b2CR06Cs1Clind;
   g_stPMICData[port].b2CR06Cs2Clind = g_stPmicInitialData.b2CR06Cs2Clind;
-//  g_stPMICData[port].b4CR06Reserved = g_stPmicInitialData.b4CR06Reserved;
-  
-//  g_stPMICData[port].b3CR07LoGmAmpSetting = g_stPmicInitialData.b3CR07LoGmAmpSetting;
-//  g_stPMICData[port].b1CR07GmManual = g_stPmicInitialData.b1CR07GmManual;
-//  g_stPMICData[port].b3CR07HiGmAmpSetting = g_stPmicInitialData.b3CR07HiGmAmpSetting;
-//  g_stPMICData[port].b1CR07GmAmpConfig = g_stPmicInitialData.b1CR07GmAmpConfig;
-  
-//  g_stPMICData[port].b2CR08AmuxTrigger = g_stPmicInitialData.b2CR08AmuxTrigger;
-//  g_stPMICData[port].b3CR08AmuxSel = g_stPmicInitialData.b3CR08AmuxSel;
-//  g_stPMICData[port].b1CR08DisAdc = g_stPmicInitialData.b1CR08DisAdc;
-//  g_stPMICData[port].b2CR08Reserved = g_stPmicInitialData.b2CR08Reserved;
-  
-//  g_stPMICData[port].b1CR09IntMaskCsClind = g_stPmicInitialData.b1CR09IntMaskCsClind;
-//  g_stPMICData[port].b1CR09IntMaskOv = g_stPmicInitialData.b1CR09IntMaskOv;
-//  g_stPMICData[port].b1CR09IntMaskOcpP = g_stPmicInitialData.b1CR09IntMaskOcpP;
-//  g_stPMICData[port].b1CR09IntMaskPg = g_stPmicInitialData.b1CR09IntMaskPg;
-//  g_stPMICData[port].b1CR09IntMaskTsd = g_stPmicInitialData.b1CR09IntMaskTsd;
-//  g_stPMICData[port].b1CR09IntMaskUv = g_stPmicInitialData.b1CR09IntMaskUv;
-//  g_stPMICData[port].b1CR09IntMaskVchn = g_stPmicInitialData.b1CR09IntMaskVchn;
-//  g_stPMICData[port].b1CR09IntMaskI2cAck = g_stPmicInitialData.b1CR09IntMaskI2cAck;
-  
-//  g_stPMICData[port].b1CR0AIntMaskShutDown = g_stPmicInitialData.b1CR0AIntMaskShutDown;
-//  g_stPMICData[port].b7CR0AReserved = g_stPmicInitialData.b7CR0AReserved;
+
+  if (port != 2) {
+    ncp81239_pmic_set_tatus(port);
+  }
 #endif
   return ucResult;
 }

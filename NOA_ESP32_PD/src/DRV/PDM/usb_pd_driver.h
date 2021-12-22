@@ -29,12 +29,12 @@ extern "C" {
 //#define CONFIG_USB_PD_GIVE_BACK
 #define CONFIG_USB_PD_SIMPLE_DFP
 #define CONFIG_USB_PD_TCPM_TCPCI
-//#define CONFIG_USBC_VCONN
+#define CONFIG_USBC_VCONN  // must enable for unflipped/flipped PD connected
 #define PD_PREFER_HIGH_VOLTAGE
 
 /* Default pull-up value on the USB-C ports when they are used as source. */
-#define CONFIG_USB_PD_PULLUP TYPEC_RP_USB
-// #define CONFIG_USB_PD_PULLUP TYPEC_RP_1A5
+// #define CONFIG_USB_PD_PULLUP TYPEC_RP_USB
+#define CONFIG_USB_PD_PULLUP TYPEC_RP_1A5
 // #define CONFIG_USB_PD_PULLUP TYPEC_RP_3A0
 
 /* Override PD_ROLE_DEFAULT in usb_pd.h */

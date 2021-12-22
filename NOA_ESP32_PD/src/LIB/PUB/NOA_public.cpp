@@ -100,6 +100,38 @@ void NOA_PUB_Print_Buf_Hex(uint8_t *buf, uint16_t len) {
   Serial.println(" ");
 }
 
+/*******************************************************************************
+Function：	Swap_hexChar
+Feature： 	0x12,0x34,0x56,0x78,0xab,0x0c -> "12 34 56 78 ab 0c"
+Parateters：*buf: char
+            *hex;
+            len:  len
+            fill: char for fill betwen char，0: not fill
+return：	len
+*******************************************************************************/
+uint16_t NOA_PUB_Swap_hexChar(char *buf, uint8_t *hex, uint16_t len, char fill) {
+  uint8_t i = 0;
+  uint16_t l = 0;
+  if (fill == 0) {
+    l = len * 2;
+  } else {
+    l = len * 3;
+  }
+  while (len-- > 0)
+  {
+    i = (*hex) >> 4;
+    *buf++ = i > 9 ? i + ('A' - 10) : i + '0';
+    i = (*hex++)&0x0F;
+    *buf++ = i > 9 ? i + ('A' - 10) : i + '0';
+    if (fill != 0)
+    {
+      *buf++ = fill;
+    }
+  }
+  *buf = '\0';
+  return l;
+}
+
 void NOA_PUB_I2C_Scanner(uint8_t nIndex){
   int nDevices = 0;
   DBGLOG(Info, "I2C %d Scanning...", nIndex);
@@ -553,3 +585,21 @@ void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR)
 
   NOA_PUB_I2C_PD_RreadAllRegs(nIndex, PD_ADDR);
 }
+
+void memory_init(void *memAddr, int memSize) {
+}
+
+void *memory_apply(int size) {
+  if (size != 0) {
+    return malloc(size);
+  }
+
+  return NULL;
+}
+void memory_release(void *addr) {
+  free(addr);
+  addr = NULL;
+}
+
+/******************************************************************************/
+

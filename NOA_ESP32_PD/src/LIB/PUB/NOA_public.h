@@ -4,7 +4,6 @@
   Copyright 2021 Mike Mao
   Released under an MIT license. See LICENSE file. 
 */
-
 #ifndef __NOA_PUBLIC_H
 #define __NOA_PUBLIC_H
 
@@ -18,7 +17,7 @@ extern "C" {
 #ifdef NOA_PD_SNACKER
 #define NOA_ESP32_PD_VERSION "0.0.1.1"
 #else
-#define NOA_ESP32_PD_VERSION "0.1.1.0"
+#define NOA_ESP32_PD_VERSION "0.1.1.2"
 #endif
 
 #define SIZE_OF_TASK_QUEUE  16
@@ -40,6 +39,7 @@ typedef struct {
 
 void NOA_PUB_ESP32DebugInit(void);
 void NOA_PUB_Print_Buf_Hex(uint8_t *buf, uint16_t len);
+uint16_t NOA_PUB_Swap_hexChar(char *buf, uint8_t *hex, uint16_t len, char fill);
 
 void NOA_PUB_I2C_Scanner(uint8_t nIndex);
 void NOA_PUB_I2C_ReceiveBytes(uint8_t nIndex, uint8_t PD_ADDR, uint8_t addr, uint8_t *data, uint16_t length);
@@ -49,6 +49,10 @@ void NOA_PUB_I2C_PD_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
 void NOA_PUB_I2C_PM_RreadAllRegs(uint8_t nIndex, uint8_t PD_ADDR);
 void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR);
 void NOA_PUB_I2C_NFC_RreadAllRegs(uint8_t nIndex, uint8_t NFC_ADDR);
+
+void memory_init(void *memAddr, int memSize);
+void *memory_apply(int size);
+void memory_release(void *addr);
 
 #ifdef __cplusplus
 }

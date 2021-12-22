@@ -62,11 +62,15 @@ extern "C" {
 #define _ADDR_05_OCP_CLIM_POS               0x00    // 00
 #define _ADDR_05_OCP_CLIM_NEG               0x00    // 00
 // #define _ADDR_05_OCP_CLIM_POS               0x03    // 11
-// #define _ADDR_05_OCP_CLIM_NEG               0x00    // 00
-// #define _ADDR_06_CS1_CLIND                  0x03    // 11
-// #define _ADDR_06_CS2_CLIND                  0x03    // 11
+// #define _ADDR_05_OCP_CLIM_NEG               0x03    // 11
 #define _ADDR_06_CS1_CLIND                  0x00    // 00
 #define _ADDR_06_CS2_CLIND                  0x00    // 00
+// #define _ADDR_06_CS1_CLIND                  0x03    // 11
+// #define _ADDR_06_CS2_CLIND                  0x03    // 11
+#define _ADDR_08_ADC_AMUX_TRIGGER           0x00
+#define _ADDR_08_ADC_AMUX_SEL               0x00
+// #define _ADDR_08_ADC_AMUX_TRIGGER           0x02
+// #define _ADDR_08_ADC_AMUX_SEL               0x04
 #define _ADDR_09_INT_MASK_CS_CLIND          0x00
 #define _ADDR_09_INT_MASK_OVP               0x00
 #define _ADDR_09_INT_MASK_OCP_P             0x00

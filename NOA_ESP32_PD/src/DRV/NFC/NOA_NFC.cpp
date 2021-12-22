@@ -13,6 +13,7 @@
 #include "..\PDM\usb_pd.h"
 #include "..\..\APP\NOA_App.h"
 #include "..\..\LIB\PUB\NOA_public.h"
+#include "..\..\LIB\PUB\NOA_syspara.h"
 
 // extern int const nxp_om9663_nfc_pdown_pin;
 // Adafruit_OM9663 rfid_nfc = Adafruit_OM9663(1, OM9663_I2C_ADDR, nxp_om9663_nfc_pdown_pin);
@@ -129,6 +130,10 @@ bool radio_mifare_dump_sector(uint8_t sector_num) {
       /* Display the block contents. */
       Serial.printf("%2d: ", sector_num * 4 + b);
       NOA_PUB_Print_Buf_Hex(readbuf, len);
+      char strUid[len * 3 + 1] = {0};
+      memset(strUid, 0, len * 3 + 1);
+      NOA_PUB_Swap_hexChar(strUid, readbuf, len, ' ');
+      NOA_Parametr_Set(61 + b, (char *)strUid);
     }
   }
   return true;
@@ -329,6 +334,10 @@ bool radio_mifare1K_dump_minimal(void) {
     uidlen = rfid_nfc.iso14443aSelect(uid, &sak);
     Serial.print("Found a tag with UUID ");
     NOA_PUB_Print_Buf_Hex(uid, uidlen);
+    char strUid[24] = {0};
+    memset(strUid, 0, 20);
+    NOA_PUB_Swap_hexChar(strUid, uid, 4, ' ');
+    NOA_Parametr_Set(60, (char *)strUid);
     if (uidlen == 4) {
       // Assume Mifare Classic/Plus and set the global/default key.
       rfid_nfc.mifareLoadKey(rfid_nfc.mifareKeyGlobal);

@@ -35,6 +35,8 @@ extern int ncp_bb_con3_en_pin;
 #endif
 // extern StructNCP81239RegisterMap g_stPMICData;
 extern StructNCP81239RegisterMap g_stPMICData[CONFIG_NCP_PM_PORT_COUNT];
+extern int pd_source_port_default_valtage;
+extern int pd_source_port_default_current;
 
 uint32_t pd_task_set_event(uint32_t event, int wait_for_reply)
 {
@@ -108,13 +110,16 @@ void pd_power_supply_reset(int port)
   }
   
   ncp81239_pmic_reset(port);
-  delay(4);
+//  delay(4);
+  vTaskDelay(4/portTICK_PERIOD_MS);
 	return;
 }
 
 void pd_power_supply_off(int port)
 {
   CPRINTF("Off %d port Vbus Power", port);
+  pd_source_port_default_valtage = 0;
+  pd_source_port_default_current = 0;
 #ifdef NOA_PD_SNACKER
   if(port != 1) {  // support 1 port only
     return;
@@ -251,6 +256,8 @@ int pd_set_power_supply_ready(int port)
   if(port != 1) {  // support 1 port only
     return EC_ERROR_UNKNOWN;
   }
+  pd_source_port_default_valtage = g_stPMICData[port].ucCR01DacTarget * 100;
+  pd_source_port_default_current = 500;
   ncp81239_pmic_set_tatus(port);
   switch (port) {
     case 1:
@@ -330,6 +337,8 @@ void pd_transition_voltage(int port, int idx)
   pdo_ma = (pdo & 0x3ff) * 10;
   pdo_mv = ((pdo >> 10) & 0x3ff) * 50;
   CPRINTF("Port %d Current requested index: %d %d mV %d mA", port, idx, pdo_mv, pdo_ma);
+  pd_source_port_default_valtage = pdo_mv;
+  pd_source_port_default_current = pdo_ma;
   pdo_mv = pdo_mv / 100;
   while(pdo_mv != pdo_mv_source) {
     if (pdo_mv < pdo_mv_source) {

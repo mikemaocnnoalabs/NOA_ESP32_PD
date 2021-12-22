@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 void NOA_WebServer_init();
-void NOA_UpdateParaJson(uint8_t nIndex, char *strValue);
+void NOA_UpdateParaJson();
 
 #ifdef __cplusplus
 }

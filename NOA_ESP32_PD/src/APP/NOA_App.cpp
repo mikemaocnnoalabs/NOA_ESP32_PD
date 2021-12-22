@@ -42,6 +42,8 @@ static int nStatus_RGB = 0;
 static int nStatus_NFC = 0;
 static int nStatus_WIFI = 0;
 static int nStatus_AP = 0;
+static int nStatus_WIRELESS = 0;
+
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
@@ -94,8 +96,10 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
       case APP_MSG_APNOTREADY:
         break;
       case APP_MSG_WIRELESSREADY:
+        nStatus_WIRELESS = 1;
         break;
       case APP_MSG_WIRELESSNOTREADY:
+        nStatus_WIRELESS = 0;
         break;
       case APP_MSG_WIFIREADY:
         break;
@@ -146,6 +150,15 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
             msg.message = APP_MSG_APREADY;
           } else {
             msg.message = APP_MSG_APNOTREADY;
+          }
+          if (NOA_RGB_TASKQUEUE != NULL) {
+            xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
+          }
+          memset(&msg, 0, sizeof(NOA_PUB_MSG));
+          if(nStatus_WIRELESS == 1) {
+            msg.message = APP_MSG_WIRELESSREADY;
+          } else {
+            msg.message = APP_MSG_WIRELESSNOTREADY;
           }
           if (NOA_RGB_TASKQUEUE != NULL) {
             xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
