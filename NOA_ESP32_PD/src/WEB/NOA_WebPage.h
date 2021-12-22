@@ -82,8 +82,8 @@ static char system_para_page_file[4096] = { "\
 \"31\":\"0\",  /* PD SRC Voltage */\
 \"32\":\"0\",  /* PD SRC Current */\
 \"33\":\"0\",  /* PD SRC Capabilities */\
-\"34\":\"0\",  /* Wireless Charge */\
-\"35\":\"0\",  /* Reserved */\
+\"34\":\"0\",  /* Wireless Charge Voltage*/\
+\"35\":\"0\",  /* Wireless Charge Temperature */\
 \"36\":\"0\",  /* OTA status1 */\
 \"37\":\"0\",  /* OTA status2 */\
 \"38\":\"0\",  /* Reserved */\
@@ -236,6 +236,7 @@ static const char cn_page_file[] = {"\
 \"PD_SRCCapabilities\":\"SRC下游协议(mv:ma)\",\
 \"WirelessChargeStatus\":\"无线充电状态\",\
 \"WirelessCharge_Voltage\":\"电压(mv)\",\
+\"WirelessCharge_Temperature\":\"温度(℃)\",\
 \"NFCStatus\":\"NFC状态\",\
 \"NFC_UUID\":\"设备UUID\",\
 \"NFC_Sector0_Addr0\":\"扇区0地址0数据\",\
@@ -328,13 +329,14 @@ static const char en_page_file[] = { "\
 \"PDInfoSNK\":\"USB Power Delivery Sink Port Status\",\
 \"PD_SNKVoltage\":\"SNK Voltage(mv)\",\
 \"PD_SNKCurrent\":\"SNK Current(ma)\",\
-\"PD_SNKCapabilities\":\"SNK Capabilities Message(mv:ma)\",\
+\"PD_SNKCapabilities\":\"SNK Capabilities (mv:ma)\",\
 \"PDInfoSRC\":\"USB Power Delivery Source Port Status\",\
 \"PD_SRCVoltage\":\"SRC Voltage(mv)\",\
 \"PD_SRCCurrent\":\"SRC Current(ma)\",\
-\"PD_SRCCapabilities\":\"SRC Capabilities Message(mv:ma)\",\
+\"PD_SRCCapabilities\":\"SRC Capabilities (mv:ma)\",\
 \"WirelessChargeStatus\":\"Wireless Charge Status\",\
 \"WirelessCharge_Voltage\":\"Voltage(mv)\",\
+\"WirelessCharge_Temperature\":\"Temperature(°C)\",\
 \"NFCStatus\":\"NFC Status\",\
 \"NFC_UUID\":\"Device UUID\",\
 \"NFC_Sector0_Addr0\":\"Sector 0 Address 0\",\
@@ -455,6 +457,7 @@ R"(<!DOCTYPE html>
           <li data-value='wifiAPSet'><span>●</span><span lang='wifiAPSet'></span></li>
           <li data-value='STASettings'><span>●</span><span lang='STASettings'></span></li>
           <li data-value='DeviceMonitor'><span>●</span><span lang='DeviceMonitor'></span></li>
+          <li data-value='firmware'><span>●</span><span lang='firmware'></span></li>
         </ul>
         <div class='showPage' id='indexPage'></div>
       </div>
@@ -464,6 +467,7 @@ R"(<!DOCTYPE html>
           <li data-value='wifiAPSet'><span>●</span><span lang='wifiAPSet'></span></li>
           <li data-value='STASettings'><span>●</span><span lang='STASettings'></span></li>
           <li data-value='DeviceMonitor'><span>●</span><span lang='DeviceMonitor'></span></li>
+          <li data-value='firmware'><span>●</span><span lang='firmware'></span></li>
         </ul>
         <div class='showPage' id='indexPageDebug'></div>
       </div>
@@ -805,6 +809,8 @@ R"(<!DOCTYPE html>
             } else {
                 xmlfile = new ActiveXObject('Microsoft.XMLHTTP');
             };
+            xmlfile.open('GET', '/cjson/system_para.json', true);
+            xmlfile.send();
             xmlfile.timeout = 3000;
             xmlfile.onreadystatechange = function () {
                 if (xmlfile.readyState == 4 && xmlfile.status == 200) {
@@ -833,8 +839,6 @@ R"(<!DOCTYPE html>
             xmlfile.ontimeout = function () {
                 getSystemInfo();
             };
-            xmlfile.open('GET', '/cjson/system_para.json', true);
-            xmlfile.send();
         };
         function ReflashSys(){
           getSystemInfo();
@@ -1482,6 +1486,10 @@ R"(<!DOCTYPE html>
                 <span class='itemLeft' lang='WirelessCharge_Voltage'></span>
                 <span id='wirelesschargevoltage'></span>
             </div>
+            <div class='cItem pluralItem'>
+                <span class='itemLeft' lang='WirelessCharge_Temperature'></span>
+                <span id='wirelesschargetemperature'></span>
+            </div>
         </div>
         <div class='card'>
             <div class='cTop' lang='NFCStatus'></div>
@@ -1544,6 +1552,7 @@ R"(<!DOCTYPE html>
                           document.getElementById('pdsrccurrent').innerHTML = paramsList.string['32'];
                           document.getElementById('pdsrccapabilities').innerHTML = paramsList.string['33'];
                           document.getElementById('wirelesschargevoltage').innerHTML = paramsList.string['34'];
+                          document.getElementById('wirelesschargetemperature').innerHTML = paramsList.string['35'];
                           document.getElementById('nfcuuid').innerHTML = paramsList.string['60'];
                           document.getElementById('nfcsector0addr0').innerHTML = paramsList.string['61'];
                           document.getElementById('nfcsector0addr1').innerHTML = paramsList.string['62'];

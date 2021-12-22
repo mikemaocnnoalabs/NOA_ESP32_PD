@@ -391,12 +391,12 @@ static int fusb302_tcpm_init(int port)
   state[port].rx_enable = -1;
 
 	/* set the voltage threshold for no connect detection (vOpen) */
- 	state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_VNC_MV);
-//  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_VNC_MV);
+//  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_VNC_MV);
+  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_VNC_MV);
 //  state[port].mdac_vnc = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_VNC_MV);
 	/* set the voltage threshold for Rd vs Ra detection */
- 	state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_RD_THRESH_MV);
-//  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_RD_THRESH_MV);
+//  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_DEF_RD_THRESH_MV);
+  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_1_5_RD_THRESH_MV);
 //  state[port].mdac_rd = TCPC_REG_MEASURE_MDAC_MV(PD_SRC_3_0_RD_THRESH_MV);
   
 	/* all other variables assumed to default to 0 */
@@ -483,16 +483,21 @@ static int fusb302_tcpm_set_cc(int port, int pull)
 	
 	/* NOTE: FUSB302 toggles a single pull-up between CC1 and CC2 */
 	/* NOTE: FUSB302 Does not support Ra. */
-//  DBGLOG(Debug, "Port %d vconn %d cc_polarity %d pulling_up %d pull %d", port, state[port].vconn_enabled, state[port].cc_polarity, state[port].pulling_up, pull);
+  DBGLOG(Debug, "Port %d vconn %d cc_polarity %d pulling_up %d pull %d", port, state[port].vconn_enabled, state[port].cc_polarity, state[port].pulling_up, pull);
 //  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
 //  DBGLOG(Debug, "Port %d pulling_up %d pull %d", port, state[port].pulling_up, pull);
 //  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
 	switch (pull) {
 	case TYPEC_CC_RP:
-    /* turn off toggle */
-    tcpc_read(port, TCPC_REG_CONTROL2, &reg);
-    reg &= ~TCPC_REG_CONTROL2_TOGGLE;
-    tcpc_write(port, TCPC_REG_CONTROL2, reg);
+      /* turn off toggle */
+//      tcpc_read(port, TCPC_REG_CONTROL2, &reg);
+//      reg &= ~TCPC_REG_CONTROL2_TOGGLE;
+//      tcpc_write(port, TCPC_REG_CONTROL2, reg);
+
+      /* turn on toggle */
+//      tcpc_read(port, TCPC_REG_CONTROL2, &reg);
+//      reg |= TCPC_REG_CONTROL2_TOGGLE | TCPC_REG_CONTROL2_MODE_DFP;
+//      tcpc_write(port, TCPC_REG_CONTROL2, reg);
 
 		/* enable the pull-up we know to be necessary */
 		tcpc_read(port, TCPC_REG_SWITCHES0, &reg);
@@ -562,7 +567,7 @@ static int fusb302_tcpm_set_polarity(int port, int polarity)
 	int reg = 0;
 
 //  DBGLOG(Debug, "Port %d vconn %d", port, state[port].vconn_enabled);
-  DBGLOG(Debug, "Port %d cc_polarity %d polarity %d snk_sel_pin %d", port, state[port].cc_polarity, polarity, usb_pd_snk_sel_pin);
+//  DBGLOG(Debug, "Port %d cc_polarity %d polarity %d snk_sel_pin %d", port, state[port].cc_polarity, polarity, usb_pd_snk_sel_pin);
 //  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
 //  DBGLOG(Debug, "Port %d rx_enable %d", port, state[port].rx_enable);
 
@@ -701,7 +706,7 @@ static int fusb302_tcpm_set_vconn(int port, int enable)
 static int fusb302_tcpm_set_msg_header(int port, int power_role, int data_role)
 {
 	int reg;
-  DBGLOG(Debug, "Port %d power_role %d data_role %d", port, power_role, data_role);
+//  DBGLOG(Debug, "Port %d power_role %d data_role %d", port, power_role, data_role);
 
 	tcpc_read(port, TCPC_REG_SWITCHES1, &reg);
 
@@ -725,9 +730,8 @@ static int fusb302_tcpm_set_rx_enable(int port, int enable)
 //  DBGLOG(Debug, "Port %d cc_polarity %d", port, state[port].cc_polarity);
 //  DBGLOG(Debug, "Port %d pulling_up %d", port, state[port].pulling_up);
 //  DBGLOG(Debug, "Port %d rx_enable %d enable %d cc_polarity %d vconn_enabled %d", port, state[port].rx_enable, enable, state[port].cc_polarity, state[port].vconn_enabled);
+    state[port].rx_enable = enable;
 
-	state[port].rx_enable = enable;
-	
 	/* Get current switch state */
 	tcpc_read(port, TCPC_REG_SWITCHES0, &reg);
 
@@ -862,7 +866,7 @@ static int fusb302_tcpm_get_message(int port, uint32_t *payload, int *head)
 		/* Discard GoodCRC packets */
 		if (PACKET_IS_GOOD_CRC(*head)) {
 			rv = EC_ERROR_UNKNOWN;
-      DBGLOG(Info, "p%d get GoodCRC package", port);
+//      DBGLOG(Info, "p%d get GoodCRC package", port);
 		} else {
 			memcpy(payload, buf, len);
 		}
@@ -1004,23 +1008,27 @@ void fusb302_tcpc_alert(int port)
 
     if (interrupt & TCPC_REG_INTERRUPT_COLLISION) {
       /* packet sending collided */
+//      DBGLOG(Debug, "Port %d interrupt TCPC_REG_INTERRUPT_COLLISION", port);
       pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
     }
 
     /* GoodCRC was received, our FIFO is now non-empty */
     if (interrupta & TCPC_REG_INTERRUPTA_TX_SUCCESS) {
       //task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_RX, 0);
+//      DBGLOG(Debug, "Port %d interrupt TCPC_TX_COMPLETE_SUCCESS", port);
       pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
     }
 
     if (interrupta & TCPC_REG_INTERRUPTA_RETRYFAIL) {
       /* all retries have failed to get a GoodCRC */
+//      DBGLOG(Debug, "Port %d interrupt TCPC_REG_INTERRUPTA_TX_SUCCESS", port);
       pd_transmit_complete(port, TCPC_TX_COMPLETE_FAILED);
     }
 
     if (interrupta & TCPC_REG_INTERRUPTA_HARDSENT) {
       /* hard reset has been sent */
       /* bring FUSB302 out of reset */
+//      DBGLOG(Debug, "Port %d interrupt TCPC_REG_INTERRUPTA_HARDSENT", port);
       fusb302_pd_reset(port);
       pd_transmit_complete(port, TCPC_TX_COMPLETE_SUCCESS);
     }
@@ -1029,6 +1037,7 @@ void fusb302_tcpc_alert(int port)
       /* hard reset has been received */
       /* bring FUSB302 out of reset */
 //      if (port == 0) {    // unreset when PD is source, debug
+//        DBGLOG(Debug, "Port %d interrupt TCPC_REG_INTERRUPTA_HARDRESET", port);
         fusb302_pd_reset(port);
         pd_execute_hard_reset(port);
         // task_wake(PD_PORT_TO_TASK_ID(port));
@@ -1038,6 +1047,7 @@ void fusb302_tcpc_alert(int port)
     if (interruptb & TCPC_REG_INTERRUPTB_GCRCSENT) {
       /* Packet received and GoodCRC sent */
       /* (this interrupt fires after the GoodCRC finishes) */
+//      DBGLOG(Debug, "Port %d interrupt TCPC_REG_INTERRUPTB_GCRCSENT", port);
       if (state[port].rx_enable) {
         //task_set_event(PD_PORT_TO_TASK_ID(port), PD_EVENT_RX, 0);
       } else {

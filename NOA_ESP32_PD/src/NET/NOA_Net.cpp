@@ -9,6 +9,8 @@
 #include <HTTPClient.h>
 
 #include "..\LIB\PUB\NOA_public.h"
+#include "..\LIB\PUB\NOA_syspara.h"
+
 #include "..\DRV\PDM\usb_pd.h"
 #include "..\APP\NOA_App.h"
 #include "..\WEB\NOA_WebServer.h"
@@ -57,6 +59,8 @@ unsigned int localPort=5001;      //Local port
 unsigned int remoteport=80;       //Remote port
 const char* ssid="NOARDTest";     //default SSID for Sta
 const char* password="12345678";  //passwd for default SSID
+//const char* ssid="KSK_Eden";         //default SSID for Sta
+//const char* password="EdenTest123";  //passwd for default SSID
 
 // const char* ssid="NOA Labs (2.4GHz)";     //default SSID for Sta
 // const char* password="noa-labs.com";  //passwd for default SSID
@@ -98,13 +102,19 @@ void WiFiEvent(WiFiEvent_t event){
       break;
     case SYSTEM_EVENT_AP_STACONNECTED:
       Serial.println("AP Sta Connected");
-      nAP_Sta_Numbers = WiFi.softAPgetStationNum() - 1;
+      nAP_Sta_Numbers = WiFi.softAPgetStationNum();
+//      if (nAP_Sta_Numbers > 0) {
+//        nAP_Sta_Numbers = nAP_Sta_Numbers - 1;
+//      }
       Serial.print("AP Sta Num:");
       Serial.println(nAP_Sta_Numbers);
       break;
     case SYSTEM_EVENT_AP_STADISCONNECTED:
       Serial.println("AP Sta Disconnected");
-      nAP_Sta_Numbers = WiFi.softAPgetStationNum() - 1;
+      nAP_Sta_Numbers = WiFi.softAPgetStationNum();
+//      if (nAP_Sta_Numbers > 0) {
+//        nAP_Sta_Numbers = nAP_Sta_Numbers - 1;
+//      }
       Serial.print("AP Sta Num:");
       Serial.println(nAP_Sta_Numbers);
       break;
@@ -323,9 +333,8 @@ void Net_APP_Task_Loop(void * pvParameters) {
   while(true){
     memset(&msg, 0, sizeof(NOA_PUB_MSG));
     xStatus = xQueueReceive(NOA_NET_TASKQUEUE, &msg, portMAX_DELAY);
-//    xStatus = xQueueReceive(NOA_NET_TASKQUEUE, &msg, xTicksToWait);
     if (xStatus == pdPASS) {
-//      DBGLOG(Info, "Net_APP_Task_Loop get a message %d QueueSpaces %d", msg.message, uxQueueSpacesAvailable(NOA_NET_TASK));
+//    DBGLOG(Info, "Net_APP_Task_Loop get a message %d QueueSpaces %d", msg.message, uxQueueSpacesAvailable(NOA_NET_TASK));
     }
     switch(msg.message) {
       case APP_MSG_TIMER_ID:
@@ -333,6 +342,8 @@ void Net_APP_Task_Loop(void * pvParameters) {
         if (nStatus_WiFiAP == 1 || nStatus_WiFiSTA == 1) {
           if (nStatus_WiFiWebServer == 0) {
             nStatus_WiFiWebServer = 1;
+//            NOA_SysPara_init();
+            NOA_Get_All_Data();
             NOA_WebServer_init();
           }
         }

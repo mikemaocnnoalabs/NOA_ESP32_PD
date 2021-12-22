@@ -45,7 +45,7 @@ static uint8_t pd_comm_enabled[CONFIG_USB_PD_PORT_COUNT];
 #else /* CONFIG_COMMON_RUNTIME */
 #define CPRINTF(format, args...)  DBGLOG(Info, format, ## args)
 #define CPRINTS(format, args...)  DBGLOG(Debug, format, ## args)
-static const int debug_level = 2;
+static const int debug_level = 0;
 #endif
 
 #ifdef CONFIG_USB_PD_DUAL_ROLE
@@ -424,7 +424,7 @@ static inline void set_state(int port, enum pd_states next_state)
 #endif
 
 	if (debug_level >= 1) {
-//		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
+		CPRINTF("C%d last%d %s st%d %s", port, last_state, pd_state_names[last_state], next_state, pd_state_names[next_state]);
 	} else {
 //		CPRINTF("C%d st%d", port, next_state);
 	}
@@ -1008,8 +1008,9 @@ static int pd_send_request_msg(int port, int always_send_request)
 		//	charge_manager_force_ceil(port, PD_MIN_MA);
 #endif
 	}
-
-	CPRINTF("Req C%d [%d] %dmV %dmA", port, RDO_POS(rdo), supply_voltage, curr_limit);
+    if (debug_level >= 2) {
+      CPRINTF("Req C%d [%d] %dmV %dmA", port, RDO_POS(rdo), supply_voltage, curr_limit);
+    }
 	if (rdo & RDO_CAP_MISMATCH)
 		CPRINTF(" Mismatch");
 //	CPRINTF("\n");
@@ -1087,9 +1088,9 @@ static void handle_data_request(int port, uint16_t head,
 {
 	int type = PD_HEADER_TYPE(head);
 	int cnt = PD_HEADER_CNT(head);
-  if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
-    CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
-  }
+//  if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
+//    CPRINTF("C%d PD head type %d cnt %d task_state %d.", port, type, cnt, pd[port].task_state);
+//  }
 	switch (type) {
 #ifdef CONFIG_USB_PD_DUAL_ROLE
 	case PD_DATA_SOURCE_CAP:
@@ -1121,7 +1122,9 @@ static void handle_data_request(int port, uint16_t head,
             /* Source will resend source cap on failure */
             int rv = 0;
             rv = pd_send_request_msg(port, 1);
-            CPRINTF("C%d send_request_msg rv = %d cnt = %d", port, rv, cnt);
+            if (debug_level >= 2) {
+              CPRINTF("C%d send_request_msg rv = %d cnt = %d", port, rv, cnt);
+            }
             // We call the callback after we send the request
             // because the timing on Request seems to be sensitive
             // User code can take the time until PS_RDY to do stuff
@@ -1163,12 +1166,13 @@ static void handle_data_request(int port, uint16_t head,
 				pd_set_saved_active(port, 1);
 #endif
 #endif
-				pd[port].requested_idx = RDO_POS(payload[0]);
-        if (pd[port].task_state != PD_STATE_SRC_READY) {
-				  set_state(port, PD_STATE_SRC_ACCEPTED);
-        } else {
-          set_state(port, PD_STATE_SRC_DISCONNECTED);
-        }
+                pd[port].requested_idx = RDO_POS(payload[0]);
+                set_state(port, PD_STATE_SRC_ACCEPTED);
+//        if (pd[port].task_state != PD_STATE_SRC_READY) {  // mike disable some code from v0.0.0.1
+//          set_state(port, PD_STATE_SRC_ACCEPTED);
+//        } else {
+//          set_state(port, PD_STATE_SRC_DISCONNECTED);
+//        }
 				return;
 			}
 		}
@@ -1555,7 +1559,9 @@ static void handle_request(int port, uint16_t head, uint32_t *payload) {
   int type = PD_HEADER_TYPE(head);
 //	int p = 0;
   if (port != 0) {  // open the log will make LATTEPANDA PD adapter fail
-    CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
+    if (debug_level >= 2) {
+      CPRINTF("C%d RECV head %04X / cnt %d type %d ", port, head, cnt, type);
+    }
   }
 	/* dump received packet content (only dump ping at debug level 3) */
 	if ((debug_level == 2 && PD_HEADER_TYPE(head) != PD_CTRL_PING) || debug_level >= 3) {
@@ -2202,25 +2208,24 @@ void pd_run_state_machine(int port, int reset)
 		*/
 	tcpc_run(port, evt);
 #else
-	/* if TCPC has reset, then need to initialize it again */
-	if (evt & PD_EVENT_TCPC_RESET) {
-		CPRINTS("TCPC p%d reset!", port);
-		if (tcpm_init(port) != EC_SUCCESS)
-			CPRINTS("TCPC p%d init failed", port);
+  /* if TCPC has reset, then need to initialize it again */
+  if (evt & PD_EVENT_TCPC_RESET) {
+//  if (hard_reset_sent[port] == 1) {
+//    hard_reset_sent[port] = 0;
+    CPRINTS("TCPC p%d reset!", port);
+    if (tcpm_init(port) != EC_SUCCESS)
+      CPRINTS("TCPC p%d init failed", port);
 #ifdef CONFIG_USB_PD_DUAL_ROLE_AUTO_TOGGLE
-	}
-
-	if ((evt & PD_EVENT_TCPC_RESET) &&
-		(pd[port].task_state != PD_STATE_DRP_AUTO_TOGGLE)) {
+  }
+  if ((evt & PD_EVENT_TCPC_RESET) && (pd[port].task_state != PD_STATE_DRP_AUTO_TOGGLE)) {
 #endif
-		/* Ensure CC termination is default */
-//		tcpm_set_cc(port, (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE ? TYPEC_CC_RP : TYPEC_CC_RD));
+    /* Ensure CC termination is default */
+//    tcpm_set_cc(port, (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE ? TYPEC_CC_RP : TYPEC_CC_RD));
     if (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE) {
       tcpm_set_cc(port, TYPEC_CC_RP);
     } else {
       tcpm_set_cc(port, TYPEC_CC_RD);
     }
-
 		/*
 			* If we have a stable contract in the default role,
 			* then simply update TCPC with some missing info
@@ -2228,36 +2233,34 @@ void pd_run_state_machine(int port, int reset)
 			* Otherwise, go to the default disconnected state
 			* and force renegotiation.
 			*/
-		if (pd[port].vdm_state == VDM_STATE_DONE && (
+    if (pd[port].vdm_state == VDM_STATE_DONE && (
 #ifdef CONFIG_USB_PD_DUAL_ROLE
-			    (PD_ROLE_DEFAULT(port) == PD_ROLE_SINK &&
-			    pd[port].task_state == PD_STATE_SNK_READY) ||
+        (PD_ROLE_DEFAULT(port) == PD_ROLE_SINK && pd[port].task_state == PD_STATE_SNK_READY) ||
 #endif
-			    (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE &&
-			    pd[port].task_state == PD_STATE_SRC_READY))) {
-			tcpm_set_polarity(port, pd[port].polarity);
-			tcpm_set_msg_header(port, pd[port].power_role, pd[port].data_role);
-			tcpm_set_rx_enable(port, 1);
-		} else {
-			/* Ensure state variables are at default */
-			pd[port].power_role = PD_ROLE_DEFAULT(port);
-			pd[port].vdm_state = VDM_STATE_DONE;
-			set_state(port, PD_DEFAULT_STATE(port));
-		}
-	}
+        (PD_ROLE_DEFAULT(port) == PD_ROLE_SOURCE && pd[port].task_state == PD_STATE_SRC_READY))) {
+          tcpm_set_polarity(port, pd[port].polarity);
+          tcpm_set_msg_header(port, pd[port].power_role, pd[port].data_role);
+          tcpm_set_rx_enable(port, 1);
+    } else {
+      /* Ensure state variables are at default */
+      pd[port].power_role = PD_ROLE_DEFAULT(port);
+      pd[port].vdm_state = VDM_STATE_DONE;
+      set_state(port, PD_DEFAULT_STATE(port));
+    }
+  }
 #endif
 
-	/* process any potential incoming message */
-//	incoming_packet = evt & PD_EVENT_RX;
-	//if (incoming_packet) {
-		if (!tcpm_get_message(port, payload, &head)) {
-      handle_request(port, head, payload);
-      incoming_packet = evt & PD_EVENT_RX;
-		}
-	//}
+    /* process any potential incoming message */
+//  incoming_packet = evt & PD_EVENT_RX;
+//    if (incoming_packet) {
+      if (!tcpm_get_message(port, payload, &head)) {
+        handle_request(port, head, payload);
+//        incoming_packet = evt & PD_EVENT_RX;
+      }
+//    }
 
-	if (pd[port].req_suspend_state)
-		set_state(port, PD_STATE_SUSPENDED);
+    if (pd[port].req_suspend_state)
+      set_state(port, PD_STATE_SUSPENDED);
 
 	/* if nothing to do, verify the state of the world in 500ms */
 	this_state = pd[port].task_state;
@@ -2286,7 +2289,8 @@ void pd_run_state_machine(int port, int reset)
 //    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) || (cc1 == TYPEC_CC_VOLT_RA && cc2 == TYPEC_CC_VOLT_RA)) {
     if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) && (pd[port].last_state != pd[port].task_state)) {
 //    if ((cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN)) {
-      pd_power_supply_off(port);
+        pd_power_supply_off(port);
+//        pd_power_supply_reset(port);
     }
 		/* Vnc monitoring */
 		if ((cc1 == TYPEC_CC_VOLT_RD || cc2 == TYPEC_CC_VOLT_RD) ||
@@ -2329,7 +2333,7 @@ void pd_run_state_machine(int port, int reset)
 		timeout = 20*MSEC_US;
 		tcpm_get_cc(port, &cc1, &cc2);
     if (pd[port].last_state != pd[port].task_state) {
-      CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
+//      CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d flag =  %d", port, cc1, cc2, pd[port].flags);
     }
 		if (cc1 == TYPEC_CC_VOLT_RD && cc2 == TYPEC_CC_VOLT_RD) {
 			/* Debug accessory */
@@ -2361,9 +2365,9 @@ void pd_run_state_machine(int port, int reset)
 		/* Debounce complete */
 		/* UFP is attached */
 		if (new_cc_state == PD_CC_UFP_ATTACHED || new_cc_state == PD_CC_DEBUG_ACC) {
-      CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d new_cc_state = %d", port, cc1, cc2, new_cc_state);
-			pd[port].polarity = (cc1 != TYPEC_CC_VOLT_RD);
-      CPRINTF("C%d SRC DISCONNECTED DEBOUNCE polarity = %d", port, pd[port].polarity);
+            CPRINTF("C%d SRC DISCONNECTED DEBOUNCE cc1 = %d cc2 = %d new_cc_state = %d", port, cc1, cc2, new_cc_state);
+            pd[port].polarity = (cc1 != TYPEC_CC_VOLT_RD);
+            CPRINTF("C%d SRC DISCONNECTED DEBOUNCE polarity = %d", port, pd[port].polarity);
 			tcpm_set_polarity(port, pd[port].polarity);
 
 			/* initial data role for source is DFP */
@@ -2535,14 +2539,8 @@ void pd_run_state_machine(int port, int reset)
 			* incoming packet or if VDO response pending to avoid
 			* collisions.
 			*/
-		if (incoming_packet ||
-			(pd[port].vdm_state == VDM_STATE_BUSY))
-			break;
-    if (port == 1) {
-//      CPRINTF("C%d flags %d", port, pd[port].flags);
-      tcpm_get_cc(port, &cc1, &cc2);
-//      CPRINTF("C%d SRC READY cc1 = %d cc2 = %d", port, cc1, cc2);
-    }
+        if (incoming_packet || (pd[port].vdm_state == VDM_STATE_BUSY))
+          break;
 
 		/* Send updated source capabilities to our partner */
 		if (pd[port].flags & PD_FLAGS_UPDATE_SRC_CAPS) {
@@ -2572,7 +2570,7 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Check power role policy, which may trigger a swap */
 		if (pd[port].flags & PD_FLAGS_CHECK_PR_ROLE) {
-      CPRINTF("C%d flags is PD_FLAGS_CHECK_PR_ROLE", port);
+//      CPRINTF("C%d flags is PD_FLAGS_CHECK_PR_ROLE", port);
 			pd_check_pr_role(port, PD_ROLE_SOURCE, pd[port].flags);
 			pd[port].flags &= ~PD_FLAGS_CHECK_PR_ROLE;
 			break;
@@ -2580,7 +2578,7 @@ void pd_run_state_machine(int port, int reset)
 
 		/* Check data role policy, which may trigger a swap */
 		if (pd[port].flags & PD_FLAGS_CHECK_DR_ROLE) {
-      CPRINTF("C%d flags is PD_FLAGS_CHECK_DR_ROLE", port);
+//      CPRINTF("C%d flags is PD_FLAGS_CHECK_DR_ROLE", port);
 			pd_check_dr_role(port, pd[port].data_role, pd[port].flags);
 			pd[port].flags &= ~PD_FLAGS_CHECK_DR_ROLE;
 			break;
@@ -2589,7 +2587,7 @@ void pd_run_state_machine(int port, int reset)
 		/* Send discovery SVDMs last */
 		if (pd[port].data_role == PD_ROLE_DFP &&
 			(pd[port].flags & PD_FLAGS_CHECK_IDENTITY)) {
-      CPRINTF("C%d flags is PD_FLAGS_CHECK_IDENTITY", port);
+//      CPRINTF("C%d flags is PD_FLAGS_CHECK_IDENTITY", port);
 #ifndef CONFIG_USB_PD_SIMPLE_DFP
 			pd_send_vdm(port, USB_SID_PD, CMD_DISCOVER_IDENT, NULL, 0);
 #endif
@@ -3022,9 +3020,8 @@ void pd_run_state_machine(int port, int reset)
 			* incoming packet or if VDO response pending to avoid
 			* collisions.
 			*/
-		if (incoming_packet ||
-			(pd[port].vdm_state == VDM_STATE_BUSY))
-			break;
+        if (incoming_packet || (pd[port].vdm_state == VDM_STATE_BUSY))
+          break;
 
 		/* Check for new power to request */
 		if (pd[port].new_power_request) {
@@ -3405,10 +3402,10 @@ void pd_run_state_machine(int port, int reset)
 		/* Source: detect disconnect by monitoring CC */
 		tcpm_get_cc(port, &cc1, &cc2);
 		if (pd[port].polarity) {
-      CPRINTF("Warning! C%d SRC changed cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
+//      CPRINTF("Warning! C%d SRC changed cc1 = %d cc2 = %d, polarity = %d", port, cc1, cc2, pd[port].polarity);
 			cc1 = cc2;
 		}
-		if (cc1 == TYPEC_CC_VOLT_OPEN) {
+		if (cc1 == TYPEC_CC_VOLT_OPEN && cc2 == TYPEC_CC_VOLT_OPEN) {
       CPRINTF("Warning! Time %ld, C%d SRC Disconected, cc1 = %d cc2 = %d, polarity = %d", millis()/1000, port, cc1, cc2, pd[port].polarity);
 			set_state(port, PD_STATE_SRC_DISCONNECTED);
 			/* Debouncing */

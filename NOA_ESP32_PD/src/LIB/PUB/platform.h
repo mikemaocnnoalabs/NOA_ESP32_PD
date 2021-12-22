@@ -7,6 +7,12 @@
 extern "C" {
 #endif
 
+typedef struct {
+  uint16_t size;
+  uint16_t lenght;
+  uint8_t *payload;
+} Buffer_t;
+
 void platform_usleep(uint64_t us) {
   delayMicroseconds(us);
 }
