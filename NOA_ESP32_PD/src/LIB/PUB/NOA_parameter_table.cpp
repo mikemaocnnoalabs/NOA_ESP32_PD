@@ -4,6 +4,8 @@
   Copyright 2021 Mike Mao
   Released under an MIT license. See LICENSE file.
 */
+#include "..\..\DRV\PDM\tcpm_driver.h"
+
 #include "NOA_public.h"
 #include "NOA_parameter_table.h"
 
@@ -28,7 +30,8 @@ const DefaultPara_List_t Default_Para[] = {  // "" seting will be canceled when 
   // 0 Reserved
   {1,   "",                       },         /* Type     */
   {2,   "",                       },         /* SN       */
-  // 3-4 Reserved
+  {3,   "NOA FAB",                },         /* Factory Name */
+  {4,   "0",                      },         /* Reboot Flag */
   {5,   NOA_ESP32_PD_VERSION,     },         /* Soft Ver */
   {6,   "",                       },         /* Hard Ver */
   {7,   "",                       },         /* Factory Time */
@@ -40,8 +43,8 @@ const DefaultPara_List_t Default_Para[] = {  // "" seting will be canceled when 
   {17,  "0.0.0.0",                },         /* STA IP SubMask */
   {18,  "0.0.0.0",                },         /* STA IP Gateway */
   {19,  "0.0.0.0",                },         /* STA IP DNS1 */
-  {20,  "",                       },         /* STA Local Port */
-  {21,  "",                       },         /* STA Remote Sever IP */
+  {20,  "5001",                   },         /* STA Local Port */
+  {21,  "80",                     },         /* STA Remote Sever IP */
   {22,  "0.0.0.0",                },         /* STA IP DNS2 */
   // 23 Reserved
   {24,  "",                       },         /* STA Remote Port */
@@ -56,23 +59,24 @@ const DefaultPara_List_t Default_Para[] = {  // "" seting will be canceled when 
   {33,  "",                       },         /* PD SRC Capabilities */
   {34,  "9000",                   },         /* Wireless Charge Voltage*/
   {35,  "-",                      },         /* Wireless Charge Temperature */
-  {36,  "",                       },         /* OTA status1 */
-  {37,  "",                       },         /* OTA status2 */
-  // 38 Reserved
-  {39,  "admin",                  },         /* Web admin */
-  {40,  "admin",                  },         /* Web admin passwd */
-  {41,  "NOARDTest",              },         /* STA Router SSID */
+  {36,  "0",                      },         /* OTA status1 */
+  {37,  "0",                      },         /* OTA status2 */
+  {38,  "0",                      },         /* OTA file size */
+  // 39-40 Reserved
+  {41,  "NOARDTest",              },         /* STA Router SSID */  /* NOARDTest */ /* KSK_Eden */ /* NOA Labs (2.4GHz) */
   {42,  "WPA",                    },         /* STA Router Encryption Mode */
-  {43,  "12345678",               },         /* STA Router Key */
+  {43,  "12345678",               },         /* STA Router Key */  /* 12345678 */ /* EdenTest123 */ /* noa-labs.com */
   {44,  "",                       },         /* MAC Of STA */
   {45,  "",                       },         /* RSSI Of STA */
   {46,  "",                       },         /* AP SSID */
   {47,  "87654321",               },         /* AP SSID Passwd */
   {48,  "",                       },         /* Net Status */
-  // 49-50 Reserved
+  {49,  "-",                      },         /* Active STA SSID */
+  {50,  "-",                      },         /* AP Scan */
   {51,  "",                       },         /* FW Release Date */
   {52,  "",                       },         /* FW Release Time */
-  // 53-54 Reserved
+  {53,  "admin",                  },         /* Web admin */
+  {54,  "admin",                  },         /* Web admin passwd */
   {55,  "",                       },         /* RSSI Of AP */
   {56,  "",                       },         /* MAC Of AP */
   {57,  "192.168.88.1",           },         /* AP IP Addr */
@@ -86,7 +90,8 @@ const DefaultPara_List_t Default_Para[] = {  // "" seting will be canceled when 
   {71,  "",                       },         /* AP Remote Sever IP */
   // 72-73 Reserved
   {74,  "",                       },         /* AP Remote Port */
-  // 75-99 Reserved
+  // 75-98 Reserved
+  {99,  "0",                      },         /* Web Set Status */
 };
 
 /* Parameters I/O API */
@@ -94,7 +99,8 @@ struct _ParamDescripTable_t NOA_PDT[] = {
   // 0 Reserved
   {1,   "1",                      setPara,      getPara},         /* Type     */
   {2,   "0000000000000000",       setPara,      getPara},         /* SN       */
-  // 3-4 Reserved
+  {3,   "NOA FAB",                setPara,      getPara},         /* Factory Name */
+  {4,   "0",                      setPara,      getPara},         /* Reboot Flag */
   {5,   "5",                      setPara,      getPara},         /* Soft Ver */
   {6,   "6",                      setPara,      getPara},         /* Hard Ver */
   {7,   "0000-00-00 00:00:00",    setPara,      getPara},         /* Factory Time */
@@ -122,11 +128,10 @@ struct _ParamDescripTable_t NOA_PDT[] = {
   {33,  "33",                     setPara,      getPara},         /* PD SRC Capabilities */
   {34,  "34",                     setPara,      getPara},         /* Wireless Charge Voltage*/
   {35,  "35",                     setPara,      getPara},         /* Wireless Charge Temperature */
-  {36,  "36",                     setPara,      getPara},         /* OTA status1 */
-  {37,  "37",                     setPara,      getPara},         /* OTA status2 */
-  // 38 Reserved
-  {39,  "admin",                  setPara,      getPara},         /* Web admin */
-  {40,  "admin",                  setPara,      getPara},         /* Web admin passwd */
+  {36,  "0",                      setPara,      getPara},         /* OTA status1 */
+  {37,  "0",                      setPara,      getPara},         /* OTA status2 */
+  {38,  "0",                      setPara,      getPara},         /* OTA file size */
+  // 39-40 Reserved
   {41,  "NOARDTest",              setPara,      getPara},         /* STA Router SSID */
   {42,  "WPA",                    setPara,      getPara},         /* STA Router Encryption Mode */
   {43,  "12345678",               setPara,      getPara},         /* STA Router Key */
@@ -135,10 +140,12 @@ struct _ParamDescripTable_t NOA_PDT[] = {
   {46,  "46",                     setPara,      getPara},         /* AP SSID */
   {47,  "47",                     setPara,      getPara},         /* AP SSID Passwd */
   {48,  "48",                     setPara,      getPara},         /* Net Status */
-  // 49-50 Reserved
+  {49,  "-",                      setPara,      getPara},         /* Active STA SSID */
+  {50,  "-",                      setPara,      getPara},         /* AP Scan */
   {51,  "51",                     setPara,      getPara},         /* FW Release Date */
   {52,  "52",                     setPara,      getPara},         /* FW Release Time */
-  // 53-54 Reserved
+  {53,  "admin",                  setPara,      getPara},         /* Web admin */
+  {54,  "admin",                  setPara,      getPara},         /* Web admin passwd */
   {55,  "55",                     setPara,      getPara},         /* RSSI Of AP */
   {56,  "56",                     setPara,      getPara},         /* MAC Of AP */
   {57,  "57",                     setPara,      getPara},         /* AP IP Addr */
@@ -152,7 +159,8 @@ struct _ParamDescripTable_t NOA_PDT[] = {
   {71,  "71",                     setPara,      getPara},         /* AP Remote Sever IP */
   // 72-73 Reserved
   {74,  "74",                     setPara,      getPara},         /* AP Remote Port */
-  // 75-99 Reserved
+  // 75-98 Reserved
+  {99,  "0",                      setPara,      getPara},         /* Web Set Status */
 };
 /*----------------------------------------------------------------------------*
 **                             Global Vars                                    *

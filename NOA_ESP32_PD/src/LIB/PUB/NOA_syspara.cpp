@@ -66,8 +66,8 @@ void NOA_Parametr_Get(int number, char *databuf) {
           ||number == 11 || number == 16 || number == 17 || number == 18 || number == 19\
           || number == 22 || number == 28 || number == 29\
           || number == 30 || number == 31 || number == 32 || number == 33 || number == 34 || number == 35 || number == 36 || number == 37\
-          || number == 41 || number == 44 || number == 46 || number == 48\
-          || number == 51 || number == 52 || number == 56 || number == 57) {
+          || number == 44 || number == 46 || number == 48 || number == 49\
+          || number == 50 || number == 51 || number == 52 || number == 56 || number == 57) {
         switch (number) {
           case 2:  // SN
             uint64_t chipid;
@@ -189,14 +189,6 @@ void NOA_Parametr_Get(int number, char *databuf) {
             break;
           case 35:  // Wireless charge Temperature
             break;
-          case 41: { // STA SSID
-              if (WiFi.isConnected()) {
-                strcpy(buf_value, WiFi.SSID().c_str());
-                memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
-                NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
-              }
-            }
-            break;
           case 44: { // STA MAC
               strcpy(buf_value, WiFi.macAddress().c_str());
               memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
@@ -219,13 +211,19 @@ void NOA_Parametr_Get(int number, char *databuf) {
               NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
             }
             break;
-          case 49: { // AP Scan
-            memory_release(buf_value);
-            xSemaphoreGive(parameter_system_mutex);
-            return;
+          case 49: { // Active STA SSID
+              if (WiFi.isConnected()) {
+                strcpy(buf_value, WiFi.SSID().c_str());
+                memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
+                NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
+              }
             }
             break;
-          case 50:
+          case 50: { // AP Scan
+              memory_release(buf_value);
+              xSemaphoreGive(parameter_system_mutex);
+              return;
+            }
             break;
           case 51:  // release date
             memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
@@ -286,8 +284,8 @@ int NOA_Parametr_Set(int number, char *data) {
   xSemaphoreTake(parameter_system_mutex, portMAX_DELAY);
   for (j = 0; j < number_of_array_elements; j++) {
     if (number == NOA_PDT[j].num) {
-//    DBGLOG(Info, "para[%d] number is %ld Old value is %s", j, number, PDT[j].a);
-//    DBGLOG(Info, "para[%d] number is %ld New value will be %s", j, number, data->payload);
+//      DBGLOG(Info, "para[%d] number is %ld Old value is %s", j, number, NOA_PDT[j].a);
+//      DBGLOG(Info, "para[%d] number is %ld New value will be %s", j, number, data);
       str = (char *)memory_apply(sizeof(char) * NOA_PARAM_LEN);
       if (str == NULL) {
         DBGLOG(Error, "MEM Alloc Error");
@@ -301,7 +299,7 @@ int NOA_Parametr_Set(int number, char *data) {
       if (nlen >= (NOA_PARAM_LEN - 1)) {
         nlen = NOA_PARAM_LEN - 1;
       }
-      strncpy(str, (char *)data, nlen);
+      memcpy(str, (char *)data, nlen);
 //      DBGLOG(Info, "para[%d] number is %ld str %s", j, number, str);
       switch (number) {
         case 2:
@@ -319,6 +317,8 @@ int NOA_Parametr_Set(int number, char *data) {
         case 35:
         case 44:
         case 48:
+        case 49:
+        case 50:
         case 51:
         case 52:
         case 56:
@@ -426,7 +426,6 @@ void NOA_Get_All_Data(void) {
   int len = NOA_PARAM_LEN;
 
   int number = 0;
-//  char *buf_temp = NULL;
   char buf_temp[NOA_PARAM_LEN] = {0};
   for (j = 0; j < number_of_array_elements; j++) {
     number = NOA_PDT[j].num;
@@ -436,12 +435,9 @@ void NOA_Get_All_Data(void) {
         ||number == 11 || number == 16 || number == 17 || number == 18 || number == 19\
         || number == 22 || number == 28 || number == 29\
         || number == 30 || number == 31 || number == 32 || number == 33 || number == 34 || number == 35 || number == 36 || number == 37\
-        || number == 41 || number == 44 || number == 46 || number == 48\
-        || number == 51 || number == 52 || number == 56 || number == 57) {
+        || number == 44 || number == 46 || number == 48 || number == 49\
+        || number == 50 || number == 51 || number == 52 || number == 56 || number == 57) {
       NOA_Parametr_Get(number, (char *)&buf_temp);
-      if (strlen(buf_temp) > 0) {
-//        memory_release(buf_temp);
-      }
     }
     buf = (char *)memory_apply(sizeof(char) * NOA_PARAM_LEN);
     memset(buf, 0, sizeof(char) * NOA_PARAM_LEN);
