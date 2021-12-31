@@ -101,13 +101,13 @@ void NOA_PUB_Print_Buf_Hex(uint8_t *buf, uint16_t len) {
 }
 
 /*******************************************************************************
-Function：	Swap_hexChar
-Feature： 	0x12,0x34,0x56,0x78,0xab,0x0c -> "12 34 56 78 ab 0c"
-Parateters：*buf: char
+Function:   Swap_hexChar
+Feature:    0x12,0x34,0x56,0x78,0xab,0x0c -> "12 34 56 78 ab 0c"
+Parateters: *buf: char
             *hex;
             len:  len
             fill: char for fill betwen char，0: not fill
-return：	len
+return:     len
 *******************************************************************************/
 uint16_t NOA_PUB_Swap_hexChar(char *buf, uint8_t *hex, uint16_t len, char fill) {
   uint8_t i = 0;
@@ -130,6 +130,23 @@ uint16_t NOA_PUB_Swap_hexChar(char *buf, uint8_t *hex, uint16_t len, char fill) 
   }
   *buf = '\0';
   return l;
+}
+
+/*******************************************************************************
+Function:   Swap_charNum
+Feature:    "1024"  -> 0x0400
+Parateters: *buf:  source str
+return:     numbers
+*******************************************************************************/
+uint32_t NOA_PUB_Swap_charNum(char *buf) {
+  uint32_t num = 0;
+
+  while ('0' <= *buf && *buf <= '9') {
+    num *= 10;
+    num += *buf++ - '0';
+  }
+
+  return num;
 }
 
 void NOA_PUB_I2C_Scanner(uint8_t nIndex){
@@ -584,6 +601,25 @@ void NOA_PUB_I2C_PD_Testing(uint8_t nIndex, uint8_t PD_ADDR)
   DBGLOG(Info, "Check 0x41 register = 0x%02X.", NOA_PUB_I2C_GetReg(nIndex, PD_ADDR, 0x41));
 
   NOA_PUB_I2C_PD_RreadAllRegs(nIndex, PD_ADDR);
+}
+
+void NOA_PUB_PartScan(esp_partition_type_t part_type) {
+  esp_partition_iterator_t iterator = NULL;
+  const esp_partition_t *next_partition = NULL;
+  iterator = esp_partition_find(part_type, ESP_PARTITION_SUBTYPE_ANY, NULL);
+  int nIndex = 0;
+  while (iterator) {
+     next_partition = esp_partition_get(iterator);
+     if (next_partition != NULL) {
+       if (part_type == ESP_PARTITION_TYPE_APP) {
+         Serial.printf(" App  Part%d A:0x%06x; S:0x%06x; L:%s\r\n", nIndex, next_partition->address, next_partition->size, next_partition->label);  
+       } else {
+         Serial.printf(" Data Part%d A:0x%06x; S:0x%06x; L:%s\r\n", nIndex, next_partition->address, next_partition->size, next_partition->label);  
+       }
+       iterator = esp_partition_next(iterator);
+       nIndex++;
+    }
+  }
 }
 
 void memory_init(void *memAddr, int memSize) {

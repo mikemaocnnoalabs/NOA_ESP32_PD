@@ -4,6 +4,7 @@
 #include <ESP32AnalogRead.h>
 
 #include "src\DRV\PDM\usb_pd.h"
+#include "src\DRV\PDM\FUSB302.h"
 #include "src\DRV\PDM\NCP81239.h"
 
 #include "src\LIB\PUB\NOA_TimeDefs.h"
@@ -155,7 +156,10 @@ void Uart_Print_Info() {
   Serial.printf(" ESP Device ID %s\r\n", deviceid);
   Serial.printf(" ESP Core Numbers %d Arduino core %d\r\n", xPortGetCoreID() + 1, ARDUINO_RUNNING_CORE);
   Serial.printf(" NOA Sketch MD5 %s\r\n", ESP.getSketchMD5().c_str());
-  Serial.printf(" NOA Sketch Size %d Free %d\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace()); 
+  Serial.printf(" NOA Sketch Used %d All %d\r\n", ESP.getSketchSize(), ESP.getFreeSketchSpace()); 
+
+  NOA_PUB_PartScan(ESP_PARTITION_TYPE_APP);
+  NOA_PUB_PartScan(ESP_PARTITION_TYPE_DATA);
 
 //  Serial.printf(" NOA ESP APP Starting on %s board\r\n",ARDUINO_BOARD);
 //  Serial.printf(" CPU Frequency = %ld MHz\r\n", (F_CPU / 1000000));

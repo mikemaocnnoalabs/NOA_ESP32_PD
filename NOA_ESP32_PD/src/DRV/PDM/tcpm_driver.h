@@ -17,7 +17,6 @@ extern "C" {
 
 // USB-C Stuff
 #include "tcpm.h"
-#include "FUSB302.h"
 
 #if 0
 // #define NOA_PD_SNACKER

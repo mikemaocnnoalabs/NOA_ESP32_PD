@@ -14,6 +14,7 @@ extern "C" {
 
 void NOA_WebServer_init();
 void NOA_UpdateParaJson();
+void NOA_UpdateAPListJson();
 
 #ifdef __cplusplus
 }

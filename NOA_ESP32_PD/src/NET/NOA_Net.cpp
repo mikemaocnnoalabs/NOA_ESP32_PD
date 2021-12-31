@@ -55,18 +55,8 @@ IPAddress xip(192,168,88,2);      //Remote IP for AP network
 
 WiFiServer Iperf_Server(5001);
 
-unsigned int localPort=5001;      //Local port
-unsigned int remoteport=80;       //Remote port
-const char* ssid="NOARDTest";     //default SSID for Sta
-const char* password="12345678";  //passwd for default SSID
-//const char* ssid="KSK_Eden";         //default SSID for Sta
-//const char* password="EdenTest123";  //passwd for default SSID
-
-// const char* ssid="NOA Labs (2.4GHz)";     //default SSID for Sta
-// const char* password="noa-labs.com";  //passwd for default SSID
-
-// const char* ssid1="NOASNA_0000000000";        //default AP SSID
-const char* password1="87654321"; //passwd for default AP SSID
+unsigned int localPort = 0;        //Local port
+unsigned int remoteport = 0;       //Remote port
 #define NOA_ESP32_HOST_NAME  "NOA_SNACKER_ESP32"
 uint8_t nAP_Sta_Numbers = 0;
 
@@ -159,6 +149,9 @@ void WiFiEvent(WiFiEvent_t event){
     case SYSTEM_EVENT_WIFI_READY:
       Serial.println("WIFI Ready");
       break;
+    case SYSTEM_EVENT_SCAN_DONE:
+      Serial.println("Scan Done");
+      break;
     default:
       Serial.println(event, HEX);
       break;
@@ -167,49 +160,7 @@ void WiFiEvent(WiFiEvent_t event){
 
 void WIFI_Test_Task_Loop( void * pvParameters ){
   DBGLOG(Info, "WIFI_Test_Task_Loop running on core %d", xPortGetCoreID());
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  int n = WiFi.scanNetworks();
-  Serial.printf("Scan Done\r\n");
-  if (n == 0) {
-    Serial.printf("No networks found\r\n");
-  } else {
-    Serial.printf("%d WIFI(2.4G)Networks Found\r\n", n);
-    for (int i = 0; i < n; ++i) {
-      // Print SSID and RSSI for each network found
-      int nrssi = 2 * (WiFi.RSSI(i) + 100);
-      if (nrssi > 100) {
-        nrssi = 100;
-      }
-      Serial.printf("%2d:%-24.24s %s (%d:%-3d) CH%02d", i + 1, WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.RSSI(i), nrssi, WiFi.channel(i));
-      switch(WiFi.encryptionType(i)){
-        case WIFI_AUTH_OPEN:
-          Serial.println(" OPEN");
-          break;
-        case WIFI_AUTH_WEP:
-          Serial.println(" WEP");
-          break;
-        case WIFI_AUTH_WPA_PSK:
-          Serial.println(" WPA");
-          break;
-        case WIFI_AUTH_WPA2_PSK:
-          Serial.println(" WPA2");
-          break;
-        case WIFI_AUTH_WPA_WPA2_PSK:
-          Serial.println(" WPA/WPA2");
-          break;
-        case WIFI_AUTH_WPA2_ENTERPRISE:
-          Serial.println(" WPA2_EN");
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  WiFi.scanDelete();
-  WiFi.disconnect(true);
-  WiFi.softAPdisconnect(true);
+  NOA_UpdateAPListJson();
 
   char deviceid[21] = {0};
   uint64_t chipid;
@@ -222,6 +173,30 @@ void WIFI_Test_Task_Loop( void * pvParameters ){
   snprintf(strWIFIap, 32, "NOA_SNACKER_%-6.6s", &deviceid[idlen - 6]);
 //  DBGLOG(Info, "AP_SSID %s", strWIFIap);
   const char* ssid1 = strWIFIap;
+
+  char strWIFIappass[64] = {0};
+  memset(strWIFIappass, 0, 64);
+  NOA_Parametr_Get(47, (char *)&strWIFIappass);
+  if (strlen(strWIFIappass) <= 0) {
+    memcpy(strWIFIappass, "87654321", 8);
+  }
+  const char* password1=strWIFIappass;
+
+  char strSSID[64] = {0};
+  memset(strSSID, 0, 64);
+  NOA_Parametr_Get(41, (char *)&strSSID);
+  if (strlen(strSSID) <= 0) {
+    memcpy(strSSID, "NOARDTest", 9);
+  }
+  const char* ssid = strSSID;
+
+  char strSSIDpass[64] = {0};
+  memset(strSSIDpass, 0, 64);
+  NOA_Parametr_Get(43, (char *)&strSSIDpass);
+  if (strlen(strSSIDpass) <= 0) {
+    memcpy(strSSIDpass, "12345678", 8);
+  }
+  const char *password=strSSIDpass;
 
   WiFi.onEvent(WiFiEvent);
   WiFi.mode(WIFI_AP_STA);
@@ -240,8 +215,28 @@ void WIFI_Test_Task_Loop( void * pvParameters ){
 //  Serial.printf("STA mac: %s\r\n", WiFi.macAddress().c_str());
 //  Serial.printf(" AP mac: %s\r\n", WiFi.softAPmacAddress().c_str());
   nStatus_WiFiTesting = 1;
+  char strValue[64] = {0};
+  memset(strValue, 0, 64);
+  NOA_Parametr_Get(20, (char *)&strValue);
+  if (strlen(strValue) > 0) {
+    localPort = NOA_PUB_Swap_charNum(strValue);
+//    DBGLOG(Info, "%s %d", strValue, localPort);
+  } else {
+    localPort=5001;
+  }
 
-  Iperf_Server.begin(5001);
+  memset(strValue, 0, 64);
+  NOA_Parametr_Get(21, (char *)&strValue);
+  if (strlen(strValue) > 0) {
+    remoteport = NOA_PUB_Swap_charNum(strValue);
+//    DBGLOG(Info, "%s %d", strValue, remoteport);
+  } else {
+    remoteport=80;
+  }
+
+  DBGLOG(Info, "%d %d", localPort, remoteport);
+
+  Iperf_Server.begin(localPort);
   uint8_t data_buffer[1024] = {0};
   while(true) {
     // listen for incoming clients

@@ -13,46 +13,48 @@ extern "C" {
 #endif
 
 // static Html page
-/* static const char ServerIndex[] PROGMEM =
-R"(<!DOCTYPE html>
-     <html lang='en'>
-     <head>
-         <meta charset='utf-8'>
-         <meta name='viewport' content='width=device-width,initial-scale=1'/>
-         <style type='text/css'>
-            html, body, iframe { margin: 0; padding: 0; height: 100%; }
-            iframe { display: block; width: 100%; border: none; }
-         </style>
-         <title>Hello NOA SNacker</title>
-     </head>
-     <body>
-     <h1>Welcome to NOA SNacker!</h1>
-     <form method='POST' action='' enctype='multipart/form-data'>
-         Firmware:<br>
-         <input type='file' accept='.bin,.bin.gz' name='firmware'>
-         <input type='submit' value='Update Firmware'>
-     </form>
-     <form method='POST' action='' enctype='multipart/form-data'>
-         FileSystem:<br>
-         <input type='file' accept='.bin,.bin.gz,.image' name='filesystem'>
-         <input type='submit' value='Update FileSystem'>
-     </form>
-     </body>
-     </html>)";
-
-static const char SuccessResponse[] PROGMEM =
-"<META http-equiv='refresh' content='15;URL=/'>Update Success! Rebooting..."; */
-
+// create a favion: https://www.favicon.cc/
+// convert to hex: http://tomeko.net/online_tools/file_to_hex.php?lang=en or https://www.onlinehexeditor.com/
+// Please note that if PROGMEM variables are not globally defined, 
+// you have to define them locally with static keyword, in order to work with PROGMEM.
+/* const static char tblFavicon[] PROGMEM = {0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x10, 0x00, 0x01, 0x00, 0x04, 0x00, 0x28, 0x01, 
+                                          0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 
+                                          0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x82, 0x7E, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x10, 0x01, 0x00, 0x01, 0x00, 0x10, 0x00, 0x10, 0x10, 
+                                          0x01, 0x00, 0x01, 0x00, 0x10, 0x00, 0x11, 0x10, 0x01, 0x00, 0x01, 0x00, 0x11, 0x10, 0x10, 0x10, 
+                                          0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x10, 0x10, 0x11, 0x10, 0x11, 0x10, 0x11, 0x10, 0xFF, 0xFF, 
+                                          0x00, 0x00, 0xF0, 0x1F, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF, 
+                                          0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFA, 0xBF, 0x00, 0x00, 0xFC, 0x7F, 
+                                          0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x5B, 0xB7, 0x00, 0x00, 0x5B, 0xB7, 
+                                          0x00, 0x00, 0x1B, 0xB1, 0x00, 0x00, 0x5B, 0xB5, 0x00, 0x00, 0x51, 0x11, 0x00, 0x00 
+                                         }; */
 // 0066cc
 // 378BE4
+// /cjson/wlan_ap_list.json
+static char wlan_ap_list_file[4096] = { "\
+[{\"name\":\"ssid1\",\"value\":\"01:02:03:04:05:06:07:08_49%_1_WPAWPA2\"},\
+{\"name\":\"ssid 1 23\",\"value\":\"01:02:03:04:05:06:07:08_60%_2_WPAWPA2\"}\
+]\
+"};
+
 // /cjson/system_para.json
 static char system_para_page_file[4096] = { "\
 {\"string\":\
 {\"0\":\"0\", /* Reserved */\
 \"1\":\"0\",  /* Type     */\
 \"2\":\"0\",  /* SN       */\
-\"3\":\"0\",  /* Reserved */\
-\"4\":\"0\",  /* Reserved */\
+\"3\":\"0\",  /* Factory Name */\
+\"4\":\"0\",  /* Reboot Flag */\
 \"5\":\"0\",  /* Soft Ver */\
 \"6\":\"0\",  /* Hard Ver */\
 \"7\":\"0\",  /* Factory Time */\
@@ -86,9 +88,9 @@ static char system_para_page_file[4096] = { "\
 \"35\":\"0\",  /* Wireless Charge Temperature */\
 \"36\":\"0\",  /* OTA status1 */\
 \"37\":\"0\",  /* OTA status2 */\
-\"38\":\"0\",  /* Reserved */\
-\"39\":\"0\",  /* Web Admin */\
-\"40\":\"0\",  /* Web Admin Passwd */\
+\"38\":\"0\",  /* OTA file size */\
+\"39\":\"0\",  /* Reserved */\
+\"40\":\"0\",  /* Reserved */\
 \"41\":\"0\",  /* STA Router SSID */\
 \"42\":\"0\",  /* STA Router Encryption Mode */\
 \"43\":\"0\",  /* STA Router Key */\
@@ -97,12 +99,12 @@ static char system_para_page_file[4096] = { "\
 \"46\":\"0\",  /* AP SSID */\
 \"47\":\"0\",  /* AP SSID Passwd */\
 \"48\":\"0,0\",/* Net Status */\
-\"49\":\"0\",  /* Reserved */\
-\"50\":\"0\",  /* Reserved */\
+\"49\":\"0\",  /* Active STA SSID */\
+\"50\":\"0\",  /* AP Scan */\
 \"51\":\"1\",  /* FW Release Date */\
 \"52\":\"2\",  /* FW Release Time */\
-\"53\":\"3\",  /* Reserved */\
-\"54\":\"4\",  /* Reserved */\
+\"53\":\"3\",  /* Web admin */\
+\"54\":\"4\",  /* Web admin passwd */\
 \"55\":\"5\",  /* RSSI Of AP */\
 \"56\":\"6\",  /* MAC Of AP */\
 \"57\":\"7\",  /* AP IP Addr */\
@@ -147,7 +149,7 @@ static char system_para_page_file[4096] = { "\
 \"96\":\"46\", /* Reserved */\
 \"97\":\"47\", /* Reserved */\
 \"98\":\"48\", /* Reserved */\
-\"99\":\"49\"  /* Reserved */\
+\"99\":\"49\"  /* Web Set Status */\
 }}\
 "};
 
@@ -248,7 +250,8 @@ static const char cn_page_file[] = {"\
 \"APIP\":\"AP IP地址\",\
 \"STADNS1\":\"域名解析服务器1\",\
 \"STADNS2\":\"域名解析服务器2\",\
-\"WorkingTime\":\"设备运行时间\"\
+\"WorkingTime\":\"设备运行时间\",\
+\"sitesurvey\":\"无线网络列表\"\
 }}\
 "};
 
@@ -348,7 +351,8 @@ static const char en_page_file[] = { "\
 \"APIP\":\"AP IP Address\",\
 \"STADNS1\":\"Domain Name Server1\",\
 \"STADNS2\":\"Domain Name Server2\",\
-\"WorkingTime\":\"Device Working Time\"\
+\"WorkingTime\":\"Device Working Time\",\
+\"sitesurvey\":\"Wi-Fi List\"\
 }}\
 "};
 
@@ -822,7 +826,7 @@ R"(<!DOCTYPE html>
                       document.getElementById('hardwareVersion').innerHTML = paramsList.string['6'];
                       document.getElementById('mac').innerHTML = paramsList.string['44'];
                       document.getElementById('networkStatus').innerHTML = paramsList.string['48'];
-                      document.getElementById('SSID').innerHTML = paramsList.string['41'];
+                      document.getElementById('SSID').innerHTML = paramsList.string['49'];
                       document.getElementById('ip').innerHTML = paramsList.string['16'];
                       document.getElementById('deviceOnline').innerHTML = paramsList.string['11'];
                       document.getElementById('Load').innerHTML = paramsList.string['27'];
@@ -1018,7 +1022,7 @@ R"(<!DOCTYPE html>
                     restartNow();
                 };
                 xmlfile.open('POST', '/cjson/system_para.json', true);
-                xmlfile.send(`{\"string\":{\"33\":\"1\"}}`);
+                xmlfile.send(`{\"string\":{\"4\":\"1\"}}`);
             };
         </script>
     </body>
@@ -1056,6 +1060,8 @@ R"(<!DOCTYPE html>
                         <label for='mode' lang='EncryptionMode'></label>
                         <select id='mode' onchange='changMode(value)'>
                             <option value='WPA/WPA2'>WPA/WPA2</option>
+                            <option value='WPA'>WPA</option>
+                            <option value='WPA2'>WPA2</option>
                             <option value='WEP'>WEP</option>
                             <option value='NONE'>NONE</option>
                         </select>
@@ -1128,7 +1134,7 @@ R"(<!DOCTYPE html>
             </div>
         </div>
         <div id='search'>
-            <p class='searchTitle'>Site Survey</p>
+            <p class='searchTitle' lang='sitesurvey'></p>
             <table class='body'>
                 <tr>
                     <td>
@@ -1160,6 +1166,29 @@ R"(<!DOCTYPE html>
         </div>
         <script>
             checkUserCurLang();
+            getSystemSTAInfo();
+            function getSystemSTAInfo() {
+                var xmlfile;
+                if (window.XMLHttpRequest) {
+                    xmlfile = new XMLHttpRequest();
+                } else {
+                    xmlfile = new ActiveXObject('Microsoft.XMLHTTP');
+                };
+                xmlfile.timeout = 3000;
+                xmlfile.onreadystatechange = function () {
+                    if (xmlfile.readyState == 4 && xmlfile.status == 200) {
+                        let paramsList = JSON.parse(xmlfile.response);
+                        document.getElementById('SSID').value = paramsList.string['41'];
+                        document.getElementById('mode').value = paramsList.string['42'];
+                        document.getElementById('password').value = paramsList.string['43'];
+                    };
+                };
+                xmlfile.ontimeout = function () {
+                    getSystemSTAInfo();
+                };
+                xmlfile.open('GET', '/cjson/system_para.json', true);
+                xmlfile.send();
+            };
             document.getElementById('search').style.display = 'none';
             var gg_ssid = '';
             var gg_mode = '';
@@ -1225,10 +1254,11 @@ R"(<!DOCTYPE html>
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
                         document.querySelector('#tableSearchBody').innerHTML = '';
                         let paramsList = JSON.parse(xmlfile.response);
-                        for (const key in paramsList.string) {
-                            var str = paramsList.string[key].split('_');
+                        for (const p in paramsList) {
+                            var key = paramsList[p].name;
+                            var str = paramsList[p].value.split('_');
                             var tr = document.createElement('tr');
-                            tr.innerHTML = "<td><input type=radio name=selectedSSID  value='" + key + "'" + " onclick=selectedSSIDChange(" + "'" + key + "'" + ",'" + str[3] + "'" + ")></td>" + " <td>" + key + "</td> <td>" + str[0] + "</td> <td>" + str[1] + "</td> <td>" + str[2] + "</td> <td>" + str[3] + "</td>";
+                            tr.innerHTML = '<td><input type=radio name=selectedSSID  value=' + key + ' onclick=selectedSSIDChange("' + escape(key) + '","' + str[3] + '")></td> <td>' + key + '</td> <td>' + str[0] + '</td> <td>' + str[1] + '</td> <td>' + str[2] + '</td> <td>' + str[3] + '</td>';
                             document.querySelector('#tableSearchBody').appendChild(tr);
                         };
                     };
@@ -1243,7 +1273,7 @@ R"(<!DOCTYPE html>
                 xmlfile.send();
             };
             function selectedSSIDChange(ssid,mode) {
-                gg_ssid = ssid;
+                gg_ssid = unescape(ssid);
                 gg_mode = mode;
             };
             function setPoint() {
@@ -1258,14 +1288,14 @@ R"(<!DOCTYPE html>
                         else alert('SSID cannot be empty');
                         return;
                     }
-                    data = `{\"string\":{\"16\":\"${SSID}\",\"19\":\"${mode.options[index].value}\"}}`
+                    data = `{\"string\":{\"41\":\"${SSID}\",\"42\":\"${mode.options[index].value}\"}}`
                 } else {
                     if (!SSID || !password) {
                         if (lang == 'cn') alert('SSID和密码不能为空');
                         else alert('SSID and password cannot be empty');
                         return;
                     };
-                    data = `{\"string\":{\"16\":\"${SSID}\",\"18\":\"${password}\",\"19\":\"${mode.options[index].value}\"}}`
+                    data = `{\"string\":{\"41\":\"${SSID}\",\"43\":\"${password}\",\"42\":\"${mode.options[index].value}\"}}`
                 };
                 var xmlfile;
                 if (window.XMLHttpRequest) {
@@ -1277,7 +1307,8 @@ R"(<!DOCTYPE html>
                 xmlfile.onreadystatechange = function () {
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
                         var tips1 = document.getElementsByClassName('tips1')[0];
-                        if (xmlfile.responseText == '0') {
+                        let paramsList = JSON.parse(xmlfile.response);
+                        if (paramsList.string['99'] == 1) {
                             document.getElementsByClassName('restartBtn')[0].style.display = '';
                             if (lang == 'cn') tips1.innerHTML = '设置成功，重启后使用新设置。';
                             else tips1.innerHTML ='The setting is successful, and the new setting will be used after restart.';
@@ -1342,9 +1373,9 @@ R"(<!DOCTYPE html>
                         };
                     };
                     if (!server) {
-                        data = `{\"string\":{\"20\":\"1\",\"21\":\"${IP}\",\"22\":\"${SubnetMask}\",\"23\":\"${Gateway}\"}}`
+                        data = `{\"string\":{\"15\":\"1\",\"16\":\"${IP}\",\"17\":\"${SubnetMask}\",\"18\":\"${Gateway}\"}}`
                     } else {
-                        data = `{\"string\":{\"20\":\"1\",\"21\":\"${IP}\",\"22\":\"${SubnetMask}\",\"23\":\"${Gateway}\",\"24\":\"${server}\"}}`
+                        data = `{\"string\":{\"15\":\"1\",\"16\":\"${IP}\",\"17\":\"${SubnetMask}\",\"18\":\"${Gateway}\",\"19\":\"${server}\"}}`
                     };
                 };
                 var xmlfile;
@@ -1405,7 +1436,7 @@ R"(<!DOCTYPE html>
                     restartNow();
                 };
                 xmlfile.open('POST', '/cjson/system_para.json', true);
-                xmlfile.send(`{\"string\":{\"33\":\"1\"}}`);
+                xmlfile.send(`{\"string\":{\"4\":\"1\"}}`);
             };
             function backMain2() {
                 document.getElementsByClassName('tipsBox2')[0].style.display = 'none';
@@ -1436,7 +1467,7 @@ R"(<!DOCTYPE html>
                     restartNow2();
                 };
                 xmlfile.open('POST', '/cjson/system_para.json', true);
-                xmlfile.send(`{\"string\":{\"33\":\"1\"}}`);
+                xmlfile.send(`{\"string\":{\"4\":\"1\"}}`);
             };
         </script>
     </body>
@@ -1596,7 +1627,7 @@ R"(<!DOCTYPE html>
                     restartNow();
                 };
                 xmlfile.open('POST', '/cjson/system_para.json', true);
-                xmlfile.send(`{\"string\":{\"33\":\"1\"}}`);
+                xmlfile.send(`{\"string\":{\"4\":\"1\"}}`);
             };
             function ReflashDev(){
               getSystemDevInfo();
@@ -1606,191 +1637,6 @@ R"(<!DOCTYPE html>
         </script>
     </body>
 </html>)";
-
-/* static const char firmware_page_file[] PROGMEM =
-R"(<!DOCTYPE html>
-        <meta charset='UTF-8'>
-        <style>
-            progress {width: 35%;height: 32px}
-            @media screen and (max-width: 1000px) {
-                progress {flex: 1;margin-right: 80px;}
-            }
-        </style>
-    <body>
-        <p class='title' lang='firmware'></p>
-        <p class='Introduction' lang='firmwareIntroduction'></p>
-        <div class='card'>
-            <div class='cTop' lang='UpgradeSet'></div>
-            <div class='formBox'>
-                <div class='formItem'>
-                    <label for='fileName' lang='FirmwareFile'></label>
-                    <input type='file' id='btn_file' name='btn_file' style='display:none  ' accept='.img' onchange='fileSelected();'>
-                    <input type='text' id='fileName' />
-                    <button class='search' id='btn_select' onclick='select_bin();' lang='selFile'></button>
-                </div>
-                <div class='formItem'>
-                    <progress id='up_percent_progress' value='0' max='100' style='width: 35%; height:32px'></progress>
-                    <label id='up_percent_labe'>0</label>
-                </div>
-                <div class='formItem'>
-                    <div class='buttonBox'>
-                        <button lang='upgrade' id='up_btn' onclick='uploadFile();'></button>
-                        <button class='cancel' lang='cancel'></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <script>
-        checkUserCurLang();
-        let lang = localStorage.getItem('lang');
-        function select_bin() {
-            document.getElementById('btn_file').click();
-        };
-        function fileSelected() {
-            var file_s = document.getElementById('btn_file').files[0];
-            if (file_s) {
-                document.getElementById('fileName').value = file_s.name;
-                document.getElementById('up_percent_labe').innerHTML = '0';
-                document.getElementById('up_percent_progress').value = 0;
-            };
-        };
-        function uploadFile() {
-            if (document.getElementById('fileName').value != '') {
-                if (lang == 'cn')
-                    document.getElementById('up_btn').innerHTML = '升级中...';
-                else
-                    document.getElementById('up_btn').innerHTML = 'upgrading...';
-                document.getElementById('up_btn').disabled = 1;
-                document.getElementById('btn_select').disabled = 1;
-                upload_file_inheart();
-            } else {
-                if (lang == 'cn')
-                    alert('请选择升级文件!');
-                else
-                    alert('Please select OTA File!');
-            };
-        };
-        var start = 0;
-        var percent = 0;
-        const LENGTH = 2048;
-        var end_flg = 0;
-        var end = start + LENGTH;
-        function upload_file_inheart() {
-            var xmlfile;
-            if (window.XMLHttpRequest) {
-                xmlfile = new XMLHttpRequest();
-            } else {
-                xmlfile = new ActiveXObject('Microsoft.XMLHTTP');
-            };
-            xmlfile.timeout = 6000;
-            xmlfile.onreadystatechange = function () {
-                if (xmlfile.readyState == 4 && xmlfile.status == 200) {
-                    if (xmlfile.responseText == '1' && end_flg == 0) {
-                        up_file_task();
-                    } else if (xmlfile.responseText == '2' && end_flg == 0) {
-                        if (lang == 'cn')
-                            document.getElementById('up_btn').innerHTML = '升级';
-                        else
-                            document.getElementById('up_btn').innerHTML = 'update';
-                        document.getElementById('up_btn').disabled = 0;
-                        document.getElementById('btn_select').disabled = 0;
-                        if (lang == 'cn')
-                            alert('OTA失败,通信失败');
-                        else
-                            alert('OTA Failed');
-                        start = 0;
-                        end = start + LENGTH;
-                    } else if (xmlfile.responseText == '0' || (end_flg == 1 && xmlfile.responseText != '3')) {
-                        upload_file_inheart();
-                    } else if (xmlfile.responseText == '3') {
-                        start = 0;
-                        end = start + LENGTH;
-                        if (lang == 'cn') {
-                            alert('升级成功,设备即将重启');
-                            document.getElementById('up_btn').innerHTML = '升级';
-                        } else {
-                            alert('OTA Successed, Device ready to reboot');
-                            document.getElementById('up_btn').innerHTML = 'update';
-                        };
-                        document.getElementById('up_btn').disabled = 0;
-                        document.getElementById('btn_select').disabled = 0;
-                        end_flg = 0;
-                    };
-                };
-            };
-            xmlfile.ontimeout = function () {
-                if (lang == 'cn')
-                    document.getElementById('up_btn').innerHTML = '升级';
-                else
-                    document.getElementById('up_btn').innerHTML = 'update';
-                document.getElementById('up_btn').disabled = 0;
-                document.getElementById('btn_select').disabled = 0;
-                if (lang == 'cn')
-                    alert('OTA失败,通信超时');
-                else
-                    alert('OTA Failed');
-                start = 0;
-                end = start + LENGTH;
-            };
-            xmlfile.open('POST', '/get_ota_status', true);
-            xmlfile.send();
-        };
-        function up_file_task() {
-            var file = document.getElementById('btn_file').files[0];
-            var filename = document.getElementById('btn_file').files[0].name;
-            document.getElementById('up_percent_labe').innerHTML = percent.toString() + '/100';
-            document.getElementById('up_percent_progress').value = percent;
-            var totalSize = file.size;
-            var fd = null;
-            var blob = null;
-            var xhr = null;
-            fd = new FormData();
-            xhr = new XMLHttpRequest();
-            xhr.timeout = 6000;
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    document.getElementById('up_percent_labe').innerHTML = percent.toString() + '/100';
-                    document.getElementById('up_percent_progress').value = percent;
-                    if (end == totalSize) {
-                        start = 0;
-                        end = start + LENGTH;
-                        end_flg = 1;
-                        upload_file_inheart();
-                    } else
-                        upload_file_inheart();
-                    start = end;
-                    if (totalSize - end >= LENGTH)
-                        end = start + LENGTH;
-                    else if (totalSize - end < LENGTH)
-                        end = start + totalSize - end;
-                };
-            };
-            xhr.ontimeout = function () {
-                if (lang == 'cn')
-                    document.getElementById('up_btn').innerHTML = '升级';
-                else
-                    document.getElementById('up_btn').innerHTML = 'update';
-                document.getElementById('up_btn').disabled = 0;
-                document.getElementById('btn_select').disabled = 0;
-                clearTimeout(t_file);
-                if (lang == 'cn')
-                    alert('OTA失败,通信超时');
-                else
-                    alert('OTA Failed');
-                start = 0;
-                end = start + LENGTH;
-            };
-            xhr.open('POST', '/update');
-            blob = file.slice(start, end);
-            fd.append('file_data', blob);
-            fd.append('filename', filename);
-            fd.append('file_size', totalSize);
-            xhr.send(fd);
-            percent = Math.round(end * 100 / totalSize);
-        };
-    </script>
-</body>
-</html>)"; */
 
 static const char firmware_page_file[] PROGMEM =
 R"(<!DOCTYPE html>
@@ -1915,6 +1761,10 @@ R"(<!DOCTYPE html>
                           end = start + LENGTH;
                         };
                     };
+                    document.getElementById('up_percent_labe').innerHTML = '0';
+                    document.getElementById('up_percent_progress').value = 0;
+                    start = 0;
+                    percent = 0;
                 };
                 xmlfile.ontimeout = function () {
                     exitUpgrade();
@@ -1955,6 +1805,7 @@ R"(<!DOCTYPE html>
                 xmlfile.open('GET', '/cjson/system_para.json', true);
                 xmlfile.send();
             }
+            var end_flg = 0;
             function enterUpload() {
                 var xmlfile;
                 if (window.XMLHttpRequest) {
@@ -1967,6 +1818,7 @@ R"(<!DOCTYPE html>
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
                         let paramsList = JSON.parse(xmlfile.response);
                         if (paramsList.string['36'] == 1) {
+                            end_flg = 0;
                             upload_file_inheart();
                         } else {
                             if (lang == 'cn')
@@ -1991,8 +1843,7 @@ R"(<!DOCTYPE html>
             };
             var start = 0;
             var percent = 0;
-            const LENGTH = 1024;
-            var end_flg = 0;
+            const LENGTH = 4096;
             var end = start + LENGTH;
             function upload_file_inheart() {
                 var UpgradeStatus = localStorage.getItem('UpgradeStatus');
@@ -2007,10 +1858,15 @@ R"(<!DOCTYPE html>
                 } else {
                     xmlfile = new ActiveXObject('Microsoft.XMLHTTP');
                 };
+                xmlfile.open('GET', '/cjson/system_para.json', true);
+                xmlfile.send();
                 xmlfile.timeout = 3000;
                 xmlfile.onreadystatechange = function () {
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
                         let paramsList = JSON.parse(xmlfile.response);
+                        console.log("start = %d end = %d percent = %d ", start, end, percent);
+                        console.log("36 = %s 37 = %s", paramsList.string['36'], paramsList.string['37']);
+                        console.log("UpgradeStatus = %s end_flg = %d ", UpgradeStatus, end_flg);
                         if (paramsList.string['36'] == 1) {
                             if (paramsList.string['37'] == 1 && end_flg == 0) {
                                 up_file_task();
@@ -2065,8 +1921,6 @@ R"(<!DOCTYPE html>
                     start = 0;
                     end = start + LENGTH;
                 };
-                xmlfile.open('GET', '/cjson/system_para.json', true);
-                xmlfile.send();
             };
             function up_file_task() {
                 var UpgradeStatus = localStorage.getItem('UpgradeStatus');
@@ -2119,10 +1973,10 @@ R"(<!DOCTYPE html>
                     end = start + LENGTH;
                 };
                 xhr.open('POST', '/update');
-                blob = file.slice(start, end);
-                fd.append('file_data', blob);
-                fd.append('filename', filename);
+                fd.append('filename',filename);
                 fd.append('file_size', totalSize);
+                blob = file.slice(start, end);
+                fd.append('file_data',blob);
                 xhr.send(fd);
                 percent = Math.round(end * 100 / totalSize);
             };
