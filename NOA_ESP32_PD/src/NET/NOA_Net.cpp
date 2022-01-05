@@ -10,6 +10,7 @@
 
 #include "..\LIB\PUB\NOA_public.h"
 #include "..\LIB\PUB\NOA_syspara.h"
+#include "..\LIB\PUB\NOA_parameter_table.h"
 
 #include "..\DRV\PDM\usb_pd.h"
 #include "..\APP\NOA_App.h"
@@ -21,7 +22,7 @@
 
 TaskHandle_t NOA_Net_Task = NULL;
 StaticTask_t xTaskBuffer_Net;
-StackType_t xStack_Net[SIZE_OF_NET_STACK];
+StackType_t xStack_Net[SIZE_OF_NET_STACK/2];
 xQueueHandle NOA_NET_TASKQUEUE = NULL;
 static int nStatus_WiFiAP = 0;
 static int nStatus_WiFiSTA = 0;
@@ -82,13 +83,14 @@ void WiFiEvent(WiFiEvent_t event){
         nStatus_WiFiAP = 1;
       }
       break;
-    case SYSTEM_EVENT_AP_STOP:
-      Serial.println("AP Stopped");
-      msg.message = APNET_MSG_NOTREADY;
-      if (NOA_APP_TASKQUEUE != NULL) {
-        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+    case SYSTEM_EVENT_AP_STOP: {
+        Serial.println("AP Stopped");
+        msg.message = APNET_MSG_NOTREADY;
+        if (NOA_APP_TASKQUEUE != NULL) {
+          xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+        }
+        nStatus_WiFiAP = 0;
       }
-      nStatus_WiFiAP = 0;
       break;
     case SYSTEM_EVENT_AP_STACONNECTED:
       Serial.println("AP Sta Connected");
@@ -112,39 +114,45 @@ void WiFiEvent(WiFiEvent_t event){
       Serial.println("AP Sta Passigned");
       break;
     case SYSTEM_EVENT_STA_START:
-      Serial.println("STA Started");
+//      Serial.println("STA Started");
       break;
     case SYSTEM_EVENT_STA_CONNECTED:
-      Serial.println("STA Connected");
+//      Serial.println("STA Connected");
 //      WiFi.enableIpV6();
       break;
     case SYSTEM_EVENT_AP_STA_GOT_IP6:
       Serial.print("STA IPv6: ");
       Serial.println(WiFi.localIPv6());
       break;
-    case SYSTEM_EVENT_STA_GOT_IP:
-      Serial.println("STA IPv4: ");
+    case SYSTEM_EVENT_STA_GOT_IP: {
+        Serial.println("STA IPv4: ");
 //      Serial.println(WiFi.localIP());
 //      Serial.println(WiFi.subnetMask());
 //      Serial.println(WiFi.gatewayIP());
 //      Serial.println(WiFi.dnsIP(0));
 //      Serial.println(WiFi.dnsIP(1));
-      msg.message = NET_MSG_READY;
-      if (NOA_APP_TASKQUEUE != NULL) {
-        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+        msg.message = NET_MSG_READY;
+        if (NOA_APP_TASKQUEUE != NULL) {
+          xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+        }
+        nStatus_WiFiSTA = 1;
       }
-      nStatus_WiFiSTA = 1;
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-      Serial.println("STA Disconnected");
-      msg.message = NET_MSG_NOTREADY;
-      if (NOA_APP_TASKQUEUE != NULL) {
-        xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+    case SYSTEM_EVENT_STA_LOST_IP: {
+      Serial.println("STA IPv4: Lost IP");
       }
-      nStatus_WiFiSTA = 0;
+      break;
+    case SYSTEM_EVENT_STA_DISCONNECTED: {
+        Serial.println("STA Disconnected");
+        msg.message = NET_MSG_NOTREADY;
+        if (NOA_APP_TASKQUEUE != NULL) {
+          xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+        }
+        nStatus_WiFiSTA = 0;
+      }
       break;
     case SYSTEM_EVENT_STA_STOP:
-      Serial.println("STA Stopped");
+//      Serial.println("STA Stopped");
       break;
     case SYSTEM_EVENT_WIFI_READY:
       Serial.println("WIFI Ready");
@@ -160,7 +168,11 @@ void WiFiEvent(WiFiEvent_t event){
 
 void WIFI_Test_Task_Loop( void * pvParameters ){
   DBGLOG(Info, "WIFI_Test_Task_Loop running on core %d", xPortGetCoreID());
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
   NOA_UpdateAPListJson();
+  WiFi.disconnect(true);
+  WiFi.softAPdisconnect(true);
 
   char deviceid[21] = {0};
   uint64_t chipid;
@@ -200,12 +212,14 @@ void WIFI_Test_Task_Loop( void * pvParameters ){
 
   WiFi.onEvent(WiFiEvent);
   WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(ssid1, password1, 1);  // Set AP SSID and Passwd
+  WiFi.setAutoReconnect(false);
+
+  WiFi.softAP(ssid1, password1, 2);  // Set AP SSID and Passwd
 //  WiFi.softAPConfig(lxip, lxip1, lxip2);  // Set AP Net parameters
 
   WiFi.begin(ssid, password);  // Set STA SSID and Passwd
 //  WiFi.config(sip, sip1, sip2);  // Set STA Net parameters
-  
+
   Serial.println("Please wait for Iperf client...");
 //  Serial.println(WiFi.getTxPower());
 //  Serial.println(WiFi.softAPSSID().c_str());
@@ -313,7 +327,7 @@ void WIFI_Http_Task_Loop(void * pvParameters) {
       }
       http_down.end();
     }
-    vTaskDelay(1/portTICK_PERIOD_MS);
+    vTaskDelay(1000/portTICK_PERIOD_MS);
   }
   DBGLOG(Info, "WIFI_Http_Task_Loop Exit from core %d", xPortGetCoreID());
   vTaskDelete(NULL);
@@ -324,6 +338,8 @@ void Net_APP_Task_Loop(void * pvParameters) {
   DBGLOG(Info, "Net_APP_Task_Loop running on core %d", xPortGetCoreID());
   BaseType_t xStatus = 0;
   NOA_PUB_MSG msg;
+  char strSSID_temp[NOA_PARAM_LEN] = {0};
+  char strSSIDpass_temp[NOA_PARAM_LEN] = {0};
 
   while(true){
     memset(&msg, 0, sizeof(NOA_PUB_MSG));
@@ -337,10 +353,30 @@ void Net_APP_Task_Loop(void * pvParameters) {
         if (nStatus_WiFiAP == 1 || nStatus_WiFiSTA == 1) {
           if (nStatus_WiFiWebServer == 0) {
             nStatus_WiFiWebServer = 1;
-//            NOA_SysPara_init();
             NOA_Get_All_Data();
             NOA_WebServer_init();
           }
+        }
+        break;
+      case APNET_MSG_RECONNECT: {
+//          DBGLOG(Info, "Net task Get APNET_MSG_RECONNECT, StackSize %ld", uxTaskGetStackHighWaterMark(NULL));
+//          WiFi.reconnect();
+          memset(strSSID_temp, 0, NOA_PARAM_LEN);
+          NOA_Parametr_Get(41, (char *)&strSSID_temp);
+          if (strlen(strSSID_temp) <= 0) {
+            memcpy(strSSID_temp, "NOARDTest", 9);
+          }
+          const char* ressid = strSSID_temp;
+          memset(strSSIDpass_temp, 0, NOA_PARAM_LEN);
+          NOA_Parametr_Get(43, (char *)&strSSIDpass_temp);
+          if (strlen(strSSIDpass_temp) <= 0) {
+            memcpy(strSSIDpass_temp, "12345678", 8);
+          }
+          const char *repassword=strSSIDpass_temp;
+//          DBGLOG(Info, "%s, %s", strSSID_temp, strSSIDpass_temp);
+          WiFi.disconnect(true);
+          WiFi.begin(ressid, repassword);  // ReSet STA SSID and Passwd
+         //  WiFi.config(sip, sip1, sip2);  // Set STA Net parameters
         }
         break;
       default:
@@ -367,20 +403,20 @@ void NOA_Net_init() {
     DBGLOG(Error, "Create WIFI_Test_Task fail");
   }
   vTaskDelay(1000/portTICK_PERIOD_MS);
-  nStatus_WiFiHttp = 0;
-  WIFI_Http_Task = xTaskCreateStaticPinnedToCore(
-                   WIFI_Http_Task_Loop,       // Function that implements the task.
-                   "WIFIHttpTask",          // Text name for the task.
-                   SIZE_OF_NET_STACK,       // Stack size in bytes, not words.
-                   NULL,                    // Parameter passed into the task.
-                   tskIDLE_PRIORITY + 1,        // Priority at which the task is created.
-                   xStack_WIFI_Http,          // Array to use as the task's stack.
-                   &xTaskBuffer_WIFI_Http,   // Variable to hold the task's data structure.
-                   ARDUINO_RUNNING_CORE);
-  if (WIFI_Http_Task == NULL || &xTaskBuffer_WIFI_Http == NULL) {
-    DBGLOG(Error, "Create WIFI_Http_Task fail");
-  }
-  vTaskDelay(1000/portTICK_PERIOD_MS);
+//  nStatus_WiFiHttp = 0;
+//  WIFI_Http_Task = xTaskCreateStaticPinnedToCore(
+//                   WIFI_Http_Task_Loop,       // Function that implements the task.
+//                   "WIFIHttpTask",          // Text name for the task.
+//                   SIZE_OF_NET_STACK,       // Stack size in bytes, not words.
+//                   NULL,                    // Parameter passed into the task.
+//                   tskIDLE_PRIORITY + 1,        // Priority at which the task is created.
+//                   xStack_WIFI_Http,          // Array to use as the task's stack.
+//                   &xTaskBuffer_WIFI_Http,   // Variable to hold the task's data structure.
+//                   ARDUINO_RUNNING_CORE);
+//  if (WIFI_Http_Task == NULL || &xTaskBuffer_WIFI_Http == NULL) {
+//    DBGLOG(Error, "Create WIFI_Http_Task fail");
+//  }
+//  vTaskDelay(1000/portTICK_PERIOD_MS);
   NOA_NET_TASKQUEUE = xQueueCreate(SIZE_OF_TASK_QUEUE, sizeof(NOA_PUB_MSG));
   if (NOA_NET_TASKQUEUE == NULL) {
     DBGLOG(Error, "Create NOA_NET_TASKQUEUE fail");
@@ -389,7 +425,7 @@ void NOA_Net_init() {
   NOA_Net_Task = xTaskCreateStaticPinnedToCore(
                    Net_APP_Task_Loop,       // Function that implements the task.
                    "NetAPPTask",            // Text name for the task.
-                   SIZE_OF_NET_STACK,       // Stack size in bytes, not words.
+                   SIZE_OF_NET_STACK/2,       // Stack size in bytes, not words.
                    NULL,                    // Parameter passed into the task.
                    tskIDLE_PRIORITY + 1,    // Priority at which the task is created.
                    xStack_Net,          // Array to use as the task's stack.
