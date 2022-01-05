@@ -22,9 +22,11 @@
 #include "..\NET\NOA_Net.h"
 
 
-#define SIZE_OF_APP_STACK  SIZE_OF_STACK * 4
+#define SIZE_OF_APP_STACK  SIZE_OF_STACK * 2
 // extern ESP32AnalogRead ncp_bb_con9v_tempadc;
 extern int ncp_bb_con1_en_pin;
+extern int const usb_pd_snk_sel_pin;
+static int nStatus_hub = 1;
 
 TaskHandle_t NOA_App_Task = NULL;
 xQueueHandle NOA_APP_TASKQUEUE = NULL;
@@ -43,7 +45,12 @@ static int nStatus_NFC = 0;
 static int nStatus_WIFI = 0;
 static int nStatus_AP = 0;
 static int nStatus_WIRELESS = 0;
+#define WIFI_RECONNECT_DELAY   15
+int nreconnect_delay_timer = WIFI_RECONNECT_DELAY;
 
+extern bool shouldreboot;
+int nreboot_delay_timer = 5;
+extern bool shouldresetsta;
 //****************************************************************************
 // CODE TABLES
 //****************************************************************************
@@ -77,9 +84,11 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         break;
       case NET_MSG_READY:
         nStatus_WIFI = 1;
+        nreconnect_delay_timer = WIFI_RECONNECT_DELAY;
         break;
       case NET_MSG_NOTREADY:
         nStatus_WIFI = 0;
+        nreconnect_delay_timer = WIFI_RECONNECT_DELAY;
         break;
       case APNET_MSG_READY:
         nStatus_AP = 1;
@@ -109,10 +118,31 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         break;
       case APP_MSG_NFCNOTREADY:
         break;
-      case APP_MSG_WDG_ID:
-//        DBGLOG(Info, "App task APP_MSG_WDG_ID");
-//        uint16_t uxArraySize = uxTaskGetNumberOfTasks();
-//        DBGLOG(Info, "Temperrature = %d in %ld Heap %d/%d StackSize %ld", ncp_bb_con9v_tempadc.readMiliVolts(), millis()/1000, ESP.getFreeHeap(), ESP.getHeapSize(), uxTaskGetStackHighWaterMark(NULL));
+      case APP_MSG_WDG_ID: {
+//          DBGLOG(Info, "App task APP_MSG_WDG_ID");
+//          uint16_t uxArraySize = uxTaskGetNumberOfTasks();
+//          DBGLOG(Info, "In %ld TasksNumber %d Heap %d/%d StackSize %ld", millis()/1000, uxArraySize, ESP.getFreeHeap(), ESP.getHeapSize(), uxTaskGetStackHighWaterMark(NULL));
+          if (shouldreboot == true && (--nreboot_delay_timer) <= 0) {
+            ESP.restart();
+          }
+          if ((--nreconnect_delay_timer) <= 0 && nStatus_WIFI == 0) {  // auto reconnect sta wifi every 15 sec when sta is not connected
+            memset(&msg, 0, sizeof(NOA_PUB_MSG));
+            msg.message = APNET_MSG_RECONNECT;
+            if (NOA_NET_TASKQUEUE != NULL) {
+              xQueueSend(NOA_NET_TASKQUEUE, &msg, (TickType_t)0);
+            }
+            nreconnect_delay_timer = WIFI_RECONNECT_DELAY;
+          }
+          if (shouldresetsta == true) {  // reconect sta directly
+            memset(&msg, 0, sizeof(NOA_PUB_MSG));
+            msg.message = APNET_MSG_RECONNECT;
+            if (NOA_NET_TASKQUEUE != NULL) {
+              xQueueSend(NOA_NET_TASKQUEUE, &msg, (TickType_t)0);
+            }
+            nreconnect_delay_timer = WIFI_RECONNECT_DELAY;
+            shouldresetsta = false;
+          }
+        }
         break;
       case APP_MSG_TIMER_ID:
 //        DBGLOG(Info, "App task APP_MSG_TIMER_ID");
@@ -162,6 +192,17 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
           }
           if (NOA_RGB_TASKQUEUE != NULL) {
             xQueueSend(NOA_RGB_TASKQUEUE, &msg, (TickType_t)0);
+          }
+          if(digitalRead(usb_pd_snk_sel_pin) == LOW) {
+            if (nStatus_hub == 1) {
+              nStatus_hub = 0;
+              DBGLOG(Info, "Hub sel pin is changed to %d", nStatus_hub);
+            }
+          } else {
+            if (nStatus_hub == 0) {
+              nStatus_hub = 1;
+              DBGLOG(Info, "Hub sel pin is changed to %d", nStatus_hub);
+            }
           }
         }
 //        ncp81239_pmic_get_tatus(1);
@@ -233,7 +274,6 @@ void NOA_App_init() {
   timerAlarmEnable(timer_app);
 
   NOA_APP_TASKQUEUE = xQueueCreate(SIZE_OF_TASK_QUEUE, sizeof(NOA_PUB_MSG));
-//  NOA_APP_TASKQUEUE = xQueueCreate(SIZE_OF_TASK_QUEUE, sizeof(uint32_t ));
   if (NOA_APP_TASKQUEUE == NULL) {
     DBGLOG(Error, "Create NOA_APP_TASKQUEUE fail");
   }

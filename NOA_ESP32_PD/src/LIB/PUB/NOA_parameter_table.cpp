@@ -63,9 +63,9 @@ const DefaultPara_List_t Default_Para[] = {  // "" seting will be canceled when 
   {37,  "0",                      },         /* OTA status2 */
   {38,  "0",                      },         /* OTA file size */
   // 39-40 Reserved
-  {41,  "NOARDTest",              },         /* STA Router SSID */  /* NOARDTest */ /* KSK_Eden */ /* NOA Labs (2.4GHz) */
+  {41,  "KSK_Eden",               },         /* STA Router SSID */  /* NOARDTest */ /* KSK_Eden */ /* NOA Labs (2.4GHz) */
   {42,  "WPA",                    },         /* STA Router Encryption Mode */
-  {43,  "12345678",               },         /* STA Router Key */  /* 12345678 */ /* EdenTest123 */ /* noa-labs.com */
+  {43,  "EdenTest123",            },         /* STA Router Key */  /* 12345678 */ /* EdenTest123 */ /* noa-labs.com */
   {44,  "",                       },         /* MAC Of STA */
   {45,  "",                       },         /* RSSI Of STA */
   {46,  "",                       },         /* AP SSID */

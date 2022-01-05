@@ -1309,9 +1309,9 @@ R"(<!DOCTYPE html>
                         var tips1 = document.getElementsByClassName('tips1')[0];
                         let paramsList = JSON.parse(xmlfile.response);
                         if (paramsList.string['99'] == 1) {
-                            document.getElementsByClassName('restartBtn')[0].style.display = '';
-                            if (lang == 'cn') tips1.innerHTML = '设置成功，重启后使用新设置。';
-                            else tips1.innerHTML ='The setting is successful, and the new setting will be used after restart.';
+                            document.getElementsByClassName('restartBtn')[0].style.display = 'none';
+                            if (lang == 'cn') tips1.innerHTML = '设置成功，5秒后使用新设置。';
+                            else tips1.innerHTML ='The setting is successful, and the new setting will be used after 5 Sec.';
                         } else {
                             document.getElementsByClassName('restartBtn')[0].style.display = 'none';
                             if (lang == 'cn') tips1.innerHTML = '设置失败,请重试';
@@ -1608,7 +1608,8 @@ R"(<!DOCTYPE html>
                 xmlfile.timeout = 3000;
                 xmlfile.onreadystatechange = function () {
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
-                        if (xmlfile.responseText == '0') {
+                        let paramsList = JSON.parse(xmlfile.response);
+                        if (paramsList.string['4'] == 1) {
                             if (lang == 'cn')
                                 document.getElementsByClassName('tips')[0].innerHTML = '重启成功';
                             else
@@ -1618,7 +1619,7 @@ R"(<!DOCTYPE html>
                                 document.getElementsByClassName('tips')[0].innerHTML = '重启失败,请重试';
                             else
                                 document.getElementsByClassName('tips')[0].innerHTML = 'Restart error, please try again';
-                        };
+                        }
                         document.getElementsByClassName('tipsBox')[0].style.display = '';
                         document.getElementsByClassName('mainBox')[0].style.display = 'none';
                     };
@@ -1843,7 +1844,7 @@ R"(<!DOCTYPE html>
             };
             var start = 0;
             var percent = 0;
-            const LENGTH = 4096;
+            const LENGTH = 8192;
             var end = start + LENGTH;
             function upload_file_inheart() {
                 var UpgradeStatus = localStorage.getItem('UpgradeStatus');
@@ -1864,13 +1865,10 @@ R"(<!DOCTYPE html>
                 xmlfile.onreadystatechange = function () {
                     if (xmlfile.readyState == 4 && xmlfile.status == 200) {
                         let paramsList = JSON.parse(xmlfile.response);
-                        console.log("start = %d end = %d percent = %d ", start, end, percent);
-                        console.log("36 = %s 37 = %s", paramsList.string['36'], paramsList.string['37']);
-                        console.log("UpgradeStatus = %s end_flg = %d ", UpgradeStatus, end_flg);
                         if (paramsList.string['36'] == 1) {
                             if (paramsList.string['37'] == 1 && end_flg == 0) {
                                 up_file_task();
-                            } else if (paramsList.string['37'] == 2 && end_flg == 0) {
+                            } else if (paramsList.string['37'] == 2) {
                                 if (lang == 'cn')
                                     document.getElementById('up_btn').innerHTML = '升级';
                                 else
@@ -1884,6 +1882,7 @@ R"(<!DOCTYPE html>
                                 start = 0;
                                 end = start + LENGTH;
                                 localStorage.setItem('UpgradeStatus', '0');
+                                exitUpgrade();
                             } else if (paramsList.string['37'] == 0 || (end_flg == 1 && paramsList.string['37'] != 3)) {
                                 upload_file_inheart();
                             } else if (paramsList.string['37'] == 3) {
@@ -1929,6 +1928,10 @@ R"(<!DOCTYPE html>
                 document.getElementById('up_percent_labe').innerHTML = percent.toString() + '/100';
                 document.getElementById('up_percent_progress').value = percent;
                 var totalSize = file.size;
+                if (totalSize < LENGTH) {
+                  exitUpgrade();
+                  return;
+                };
                 var fd = null;
                 var blob = null;
                 var xhr = null;

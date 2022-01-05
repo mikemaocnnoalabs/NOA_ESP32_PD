@@ -38,18 +38,20 @@ extern char strReleaseTime[16];
 extern uint8_t nAP_Sta_Numbers;
 
 void NOA_Parametr_Get(int number, char *databuf) {
+  // lock
+  xSemaphoreTake(parameter_system_mutex, portMAX_DELAY);
   char *buf_value = NULL;
   int len = 0;
   if (sizeof(databuf) > 0) {
     memset(databuf, '\0', (int)sizeof(databuf));
   } else {
     DBGLOG(Error, "Sys para databuf size fail");
+    /* unlock */
+    xSemaphoreGive(parameter_system_mutex);
     return;
   }
 //  DBGLOG(Info, "NOA_Parametr_Get begin:%d!", number);
   int j = 0;
-  // lock
-  xSemaphoreTake(parameter_system_mutex, portMAX_DELAY);
 
   for (j = 0; j < number_of_array_elements; j++) {
     if (number == NOA_PDT[j].num) {
@@ -87,26 +89,33 @@ void NOA_Parametr_Get(int number, char *databuf) {
             NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
             break;
           case 11:
+            sprintf(buf_value, "%d", WiFi.softAPgetStationNum());
+            memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
+            NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
             break;
           case 16:
           case 17:
           case 18:
           case 19:
           case 22: {  // Query sta IP/Mask/GW/DNS
-            if (number == 16) {
-              strcpy(buf_value, WiFi.localIP().toString().c_str());
-            }
-            if (number == 17) {
-              strcpy(buf_value, WiFi.subnetMask().toString().c_str());
-            }
-            if (number == 18) {
-              strcpy(buf_value, WiFi.gatewayIP().toString().c_str());
-            }
-            if (number == 19) {
-              strcpy(buf_value, WiFi.dnsIP(0).toString().c_str());
-            }
-            if (number == 22) {
-              strcpy(buf_value, WiFi.dnsIP(1).toString().c_str());
+            if (WiFi.isConnected()) {
+              if (number == 16) {
+                strcpy(buf_value, WiFi.localIP().toString().c_str());
+              }
+              if (number == 17) {
+                strcpy(buf_value, WiFi.subnetMask().toString().c_str());
+              }
+              if (number == 18) {
+                strcpy(buf_value, WiFi.gatewayIP().toString().c_str());
+              }
+              if (number == 19) {
+                strcpy(buf_value, WiFi.dnsIP(0).toString().c_str());
+              }
+              if (number == 22) {
+                strcpy(buf_value, WiFi.dnsIP(1).toString().c_str());
+              }
+            } else {
+              strcpy(buf_value, "-");
             }
             memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
             NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
@@ -214,9 +223,11 @@ void NOA_Parametr_Get(int number, char *databuf) {
           case 49: { // Active STA SSID
               if (WiFi.isConnected()) {
                 strcpy(buf_value, WiFi.SSID().c_str());
-                memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
-                NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
+              } else {
+                strcpy(buf_value, "-");
               }
+              memset((&NOA_PDT[j])->a, 0, sizeof((&NOA_PDT[j])->a));
+              NOA_PDT[j].wFunc(&NOA_PDT[j], buf_value, &len);
             }
             break;
           case 50: { // AP Scan

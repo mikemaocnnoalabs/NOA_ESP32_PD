@@ -12,6 +12,7 @@
 
 #include "..\DRV\PDM\usb_pd.h"
 #include "..\APP\NOA_App.h"
+
 #include "..\LIB\PUB\NOA_public.h"
 #include "..\LIB\PUB\NOA_syspara.h"
 #include "..\LIB\PUB\NOA_parameter_table.h"
@@ -35,7 +36,9 @@ String _password = "admin";
 WebServer NOAServer(80);
 static xSemaphoreHandle noaserver_parajson_mutex = NULL;
 
-bool shouldreboot = false; // reboot flag
+bool shouldreboot = false;
+bool shouldresetsta = false;
+extern int nreboot_delay_timer;
 static uint32_t nFile_Size = 0;
 static uint32_t nFile_Counts = 0;
 bool bUpdate = false;
@@ -82,7 +85,7 @@ void handleFileupload() {  // callback
   
   HTTPUpload &upload = NOAServer.upload();  // file upload object
   if (upload.status == UPLOAD_FILE_START) {  // Begin file upload
-    DBGLOG(Info, "Begin upload file:%s %d %d %d", upload.filename.c_str(), upload.currentSize, upload.totalSize, nFile_Counts);
+//    DBGLOG(Info, "Begin upload file:%s %d %d %d", upload.filename.c_str(), upload.currentSize, upload.totalSize, nFile_Counts);
     if (nFile_Size == 0) {
       nFile_Counts = 0;
       uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
@@ -93,8 +96,43 @@ void handleFileupload() {  // callback
       }
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (nFile_Counts == 0) {
+      if (upload.currentSize > 512) {
+        int nIndex = 0;
+        for(int nTemp_i = 0; nTemp_i < upload.currentSize; nTemp_i++) {
+           if (upload.buf[nTemp_i] == 0x00 && upload.buf[nTemp_i - 1] == 0x3d && upload.buf[nTemp_i - 2] == 0x3d) {
+              nIndex = nTemp_i + 1;
+              break;
+           }
+        }
+        char strflag[32] = {0};
+        memcpy(strflag, &upload.buf[nIndex + 9], 23);
+        DBGLOG(Info, "File flag is %s in %d of first %d data", strflag, nIndex, upload.currentSize);
+        char strver[8] = {0};
+        int nver = 0;
+        snprintf(strver, 8, "%c%c%c%c", upload.buf[nIndex], upload.buf[nIndex + 2], upload.buf[nIndex + 4], upload.buf[nIndex + 6]);
+        nver = NOA_PUB_Swap_charNum(strver);
+        DBGLOG(Info, "Version flag is %s in first %d data = %d", strver, upload.currentSize, nver);
+#ifdef NOA_PD_SNACKER
+        if (memcmp(strflag, "NOA PD SNACKER Firmware", 23) != 0) {
+          DBGLOG(Error, "Snacker OTA file error");
+          NOA_Parametr_Set(37, (char *)"2");
+          bUpdate = false;
+          return;
+        } else {
+          if (nver <= 12) {
+            DBGLOG(Error, "Snacker OTA version error");
+            NOA_Parametr_Set(37, (char *)"2");
+            bUpdate = false;
+            return;
+          }
+        }
+#else
+#endif
+      }
+    }
     nFile_Counts = nFile_Counts + upload.currentSize;
-    DBGLOG(Info, "uploaded %d %d %d bytes of file size ", upload.currentSize, upload.totalSize, nFile_Counts);
+//    DBGLOG(Info, "uploaded %d %d %d bytes of file size ", upload.currentSize, upload.totalSize, nFile_Counts);
     if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
       DBGLOG(Error, "Update write error");
       NOA_Parametr_Set(37, (char *)"2");
@@ -113,10 +151,10 @@ void handleFileupload() {  // callback
       nFile_Size = 0;
       nFile_Counts = 0;
     } else if (nFile_Counts < nFile_Size){
-      DBGLOG(Info, "Upload is finished. Counts %d is less than file size %d!", nFile_Counts, nFile_Size);
+//      DBGLOG(Info, "Upload is finished. Counts %d is less than file size %d!", nFile_Counts, nFile_Size);
     } else {
-      DBGLOG(Info, "Upload is finished. Counts %d is large than file size %d!", nFile_Counts, nFile_Size);
       if (nFile_Size != 0) {
+        DBGLOG(Info, "Upload is finished. Counts %d is large than file size %d!", nFile_Counts, nFile_Size);
         Update.end();
         nFile_Size = 0;
         nFile_Counts = 0;
@@ -130,9 +168,6 @@ void handleFileupload() {  // callback
 
 DynamicJsonDocument docPara_Temp(4096);
 void handleResponse_para() {      // callback
-//  NOAServer.sendHeader("Connection", "close");
-//  NOAServer.sendHeader("Cache-Control", "no-cache");
-//  NOAServer.sendHeader("X-Content-Type-Options", "nosniff");
   int nArgs_num = NOAServer.args();
   DBGLOG(Info, "Para Response:%d", nArgs_num);
   if (nArgs_num > 0) {
@@ -181,6 +216,17 @@ void handleResponse_para() {      // callback
         bUpdate = true;
       }
       NOA_Parametr_Set(nTemp_i + 1, (char *)strTemp.c_str());
+    }
+    if (nTemp_i == 4) {  // reboot
+      int nTemp_value = NOA_PUB_Swap_charNum((char *)strTemp.c_str());
+      if (nTemp_value >= 5) {
+        nTemp_value = 5;
+      }
+      shouldreboot = true;
+      nreboot_delay_timer = nTemp_value;
+    }
+    if (nTemp_i == 41 || nTemp_i == 42 || nTemp_i == 43) {  // reset STA link
+      shouldresetsta = true;
     }
   }
 //  for (JsonObject::iterator itPara=stringPara.begin(); itPara!= stringPara.end(); ++ itPara) {    
@@ -392,7 +438,7 @@ void NOA_UpdateAPListJson() {
     }
   }
 
-//  WiFi.scanDelete();
+  WiFi.scanDelete();
 //  WiFi.disconnect(true);
 //  WiFi.softAPdisconnect(true);
 

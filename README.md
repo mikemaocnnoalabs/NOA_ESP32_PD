@@ -75,4 +75,6 @@ This code can be tested with the NOA ESP32 PD board
 
 4. Add PD SRC functions code
 
+5. Use 40M SPI speed, DIO SPI mode and 64Mbit FLASHSIZE for Snacker board
+
  

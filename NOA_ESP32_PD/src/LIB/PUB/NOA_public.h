@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #ifdef NOA_PD_SNACKER
-#define NOA_ESP32_PD_VERSION "0.0.1.2"
+#define NOA_ESP32_PD_VERSION "0.0.1.3"
 #define NOA_PD_DEVICENAME "NOA-Snacker-ESP-32"
 #else
 #define NOA_ESP32_PD_VERSION "0.1.1.2"
