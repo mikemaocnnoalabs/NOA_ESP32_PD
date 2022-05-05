@@ -40,7 +40,7 @@ extern "C" {
 #define NOA_PD_DEVICENAME "NOA-Station-ESP-32"
 #endif
 #ifdef NOA_PD_STATION2
-#define NOA_ESP32_PD_VERSION "1.1.1.3"  // 1.1.x.x support ESP32-S2
+#define NOA_ESP32_PD_VERSION "1.1.1.4"  // 1.1.x.x support ESP32-S2
 #define NOA_PD_DEVICENAME "NOA-Station-ESP-32-S2"
 #endif
 #endif

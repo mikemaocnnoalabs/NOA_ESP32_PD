@@ -1,0 +1,178 @@
+checked ota_data_initial.bin								0xe000
+checked bootloader.bin										0x1000
+checked noa-eden-station2_x.x.x.x_xxxxxxxxxxxxxx.bin		0x10000
+checked partition-table.bin									0x8000
+
+SPI SPEED   40MHZ
+SPI MODE 	DIO
+
+FLASH SIZE	64Mbit
+
+Unchecked	DoNotChgBin
+COM BAUD	921600
+
+* After erase finished, Manual reboot board
+
+ESP-ROM:esp32s2-rc4-20191025
+Build:Oct 25 2019
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:2
+load:0x3ffe6100,len:0x1178
+load:0x4004c000,len:0x8b4
+load:0x40050000,len:0x2c34
+entry 0x4004c198
+[0;32mI (148) cache:€˜†ž~f~®ëË…¡•	: size 8KB, 4Ways, cache line size 32Byte[0m
+[0;32mI (149) cpu_start: Pro cpu up.[0m
+[0;32mI (160) cpu_start: Pro cpu start user code[0m
+[0;32mI (161) cpu_start: cpu freq: 80000000[0m
+[0;32mI (161) cpu_start: Application information:[0m
+[0;32mI (165) cpu_start: Project name:     noa-eESP-ROM:esp32s2-rc4-20191025
+Build:Oct 25 2019
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:2
+load:0x3ffe6100,len:0x1178
+load:0x4004c000,len:0x8b4
+load:0x40050000,len:0x2c34
+entry 0x4004c198
+[0;32mI (98) cache: †ž~f~~†½¹cache 	: size 8KB, 4Ways, cache line size 32Byte[0m
+[0;32mI (98) cpu_start: Pro cpu up.[0m
+[0;32mI (110) cpu_start: Pro cpu start user code[0m
+[0;32mI (110) cpu_start: cpu freq: 80000000[0m
+[0;32mI (110) cpu_start: Application information:[0m
+[0;32mI (114) cpu_start: Project name:     noa-eden-station2[0m
+[0;32mI (120) cpu_start: App version:      1.1.1.4[0m
+[0;32mI (125) cpu_start: Compile time:     May  5 2022 18:50:40[0m
+[0;32mI (131) cpu_start: ELF file SHA256:  e1c5658af78a6aa0...[0m
+[0;32mI (137) cpu_start: ESP-IDF:          v4.4.1-117-g8c8f700c1d[0m
+[0;32mI (143) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (150) heap_init: At 3FFC4CF8 len 00037308 (220 KiB): DRAM[0m
+[0;32mI (156) heap_init: At 3FFFC000 len 00003A10 (14 KiB): DRAM[0m
+[0;32mI (163) heap_init: At 3FF9E02C len 00001FD4 (7 KiB): RTCRAM[0m
+[0;32mI (170) spi_flash: detected chip: winbond[0m
+[0;32mI (174) spi_flash: flash io: dio[0m
+[0;33mW (178) spi_flash: Detected size(16384k) larger than the size in the binary image header(8192k). Using the size in the binary image header.[0m
+[0;32mI (192) cpu_start: Starting scheduler on PRO CPU.[0m
+Wakeup was not caused by deep sleep: 0
+May  5 2022 18:51:02
+==========================================
+ NOA PD STATION2 Firmware 1.1.1.4
+ Building Time 20220505185102
+ ESP Chip Model ESP32S2 Revision 0
+ ESP Chip Cores 1 CPUFrea 80MHz
+ ESP SDK Version v4.4.1-117-g8c8f700c1d
+ ESP Heap MINFree(231300)MAX(208896)Free(231300)/Size(243800)Bytes
+ ESP DMA MINFree(224908)MAX(208896)Free(224908)/Size(237408)Bytes
+ ESP Flash Size 8MB Mode DIO Speed 40MHz
+ ESP Device ID 130533492903768
+ ESP Base MAC 58:CF:79:32:B8:76
+ NOA APP SHA256 e1c5658af78a6aa0
+ App  Part0 A:0x010000; S:0x300000; L:app0
+ App  Part1 A:0x310000; S:0x300000; L:app1
+ Data Part0 A:0x009000; S:0x005000; L:nvs
+ Data Part1 A:0x00e000; S:0x002000; L:otadata
+ Data Part2 A:0x610000; S:0x060000; L:eeprom
+ Data Part3 A:0x670000; S:0x190000; L:ffat
+==========================================
+[0;32mI (351) gpio: GPIO[10]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (360) gpio: GPIO[35]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (369) gpio: GPIO[36]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (379) gpio: GPIO[39]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (388) gpio: GPIO[21]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 1| Intr:0 [0m
+[0;32mI (447) gpio: GPIO[6]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (447) gpio: GPIO[20]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (455) gpio: GPIO[37]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (464) gpio: GPIO[38]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (473) gpio: GPIO[1]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (482) gpio: GPIO[9]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (492) gpio: GPIO[19]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (501) gpio: GPIO[41]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (510) gpio: GPIO[11]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 1| Intr:0 [0m
+[0;32mI (519) gpio: GPIO[13]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 1| Intr:0 [0m
+[0;32mI (529) gpio: GPIO[14]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 1| Intr:0 [0m
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- 22 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- 74 75 -- -- -- -- -- -- -- -- -- -- 
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- 22 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- 74 -- -- -- -- -- -- -- -- -- -- -- 
+[0;32mI (624) gpio: GPIO[40]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 [0m
+[0;32mI (633) gpio: GPIO[4]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (642) gpio: GPIO[7]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (651) gpio: GPIO[18]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (661) gpio: GPIO[2]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (670) gpio: GPIO[8]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (679) gpio: GPIO[17]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+D (692) main.cpp:app_main:430 C2 CC1 7 CC2 6[0m
+D (693) NOA_App.cpp:gpio_task_loop:94 Start GPIO task gpio_task_loop...[0m
+D (700) NOA_App.cpp:MAIN_APP_Task_Loop:158 MAIN_APP_Task_Loop running on core 0[0m
+D (699) NOA_App.cpp:NOA_App_init:332 Started timers, time since boot: 1133211 us[0m
+D (764) main.cpp:app_main:440 In 1 Heap 229164/229164 StackSize 2152[0m
+D (764) usb_pd_protocol.cpp:pd_init:2076 TCPC C0 init Begin..[0m
+D (769) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C0 vconn -1 enable 0[0m
+D (773) usb_pd_protocol.cpp:pd_init:2098 TCPC C0 init res = 0 ready[0m
+D (780) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C0 vconn 0 enable 0[0m
+D (787) usb_pd_protocol.cpp:pd_init:2136 TCPC C0 power_role 0[0m
+D (791) FUSB302.cpp:fusb302_tcpm_set_cc:493 C0 vconn 0 cc_polarity 0 pulling_up -1 pull 2[0m
+D (850) NOA_Pd.cpp:pd_task_loop:71 Start PD task pd_task_loop...[0m
+D (854) usb_pd_protocol.cpp:pd_run_state_machine:2767 C0 SNK DISCONNECTED cc1 = 0 cc2 = 7[0m
+D (1087) usb_pd_policy.cpp:pd_process_source_cap:263 C[0] cap current index 4 mv: 20000 ma: 4350[0m
+D (1357) usb_pd_protocol.cpp:handle_ctrl_request:1367 C0 PD curr_limit 4350 supply_voltage 20000[0m
+D (1358) NOA_Pd.cpp:pd_process_source_cap_callback:212 C0 HIGH cnt 5 260641B3: 20000 mv 4350 ma[0m
+D (1364) usb_pd_protocol.cpp:pd_init:2076 TCPC C1 init Begin..[0m
+D (1381) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C1 vconn -1 enable 0[0m
+D (1383) usb_pd_protocol.cpp:pd_init:2098 TCPC C1 init res = 0 ready[0m
+D (1387) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C1 vconn 0 enable 0[0m
+D (1403) usb_pd_protocol.cpp:pd_init:2136 TCPC C1 power_role 1[0m
+D (1405) FUSB302.cpp:fusb302_tcpm_set_cc:493 C1 vconn 0 cc_polarity 0 pulling_up -1 pull 1[0m
+D (1461) NCP81239.cpp:ncp81239_pmic_init:120 C1 CC1 0 CC2 0[0m
+D (1463) usb_pd_protocol.cpp:pd_init:2076 TCPC C2 init Begin..[0m
+D (1463) usb_pd_driver.cpp:pd_power_supply_reset:118 Reset C2 Vbus Power[0m
+D (1472) NCP81239.cpp:ncp81239_pmic_reset:444 C2 CC1 7 CC2 6[0m
+D (1482) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C2 vconn -1 enable 0[0m
+D (1485) usb_pd_protocol.cpp:pd_init:2098 TCPC C2 init res = 0 ready[0m
+D (1489) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C2 vconn 0 enable 0[0m
+D (1494) usb_pd_driver.cpp:pd_power_supply_reset:118 Reset C2 Vbus Power[0m
+D (1506) NCP81239.cpp:ncp81239_pmic_reset:444 C2 CC1 1 CC2 1[0m
+D (1511) usb_pd_protocol.cpp:pd_init:2136 TCPC C2 power_role 1[0m
+D (1513) FUSB302.cpp:fusb302_tcpm_set_cc:493 C2 vconn 0 cc_polarity 0 pulling_up -1 pull 1[0m
+D (1575) NOA_Pd.cpp:pd_task_loop:93 C2 CC1 0 CC2 2[0m
+D (1580) NCP81239.cpp:ncp81239_pmic_init:120 C2 CC1 0 CC2 2[0m
+D (1581) usb_pd_protocol.cpp:pd_init:2076 TCPC C3 init Begin..[0m
+D (1594) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C3 vconn -1 enable 0[0m
+D (1596) usb_pd_protocol.cpp:pd_init:2098 TCPC C3 init res = 0 ready[0m
+D (1600) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C3 vconn 0 enable 0[0m
+D (1616) usb_pd_protocol.cpp:pd_init:2136 TCPC C3 power_role 1[0m
+D (1618) FUSB302.cpp:fusb302_tcpm_set_cc:493 C3 vconn 0 cc_polarity 0 pulling_up -1 pull 1[0m
+D (1675) NCP81239.cpp:ncp81239_pmic_init:120 C3 CC1 0 CC2 0[0m
+D (1691) usb_pd_driver.cpp:pd_power_supply_off:129 Off C1 Vbus Power[0m
+D (1698) usb_pd_driver.cpp:pd_set_power_supply_ready:278 Enable C2 Vbus Power[0m
+D (1704) usb_pd_driver.cpp:pd_power_supply_off:129 Off C3 Vbus Power[0m
+D (1835) usb_pd_protocol.cpp:pd_run_state_machine:2370 C2 SRC DISCONNECTED DEBOUNCE cc1 = 0 cc2 = 2 new_cc_state = 4[0m
+D (1835) usb_pd_protocol.cpp:pd_run_state_machine:2372 C2 SRC DISCONNECTED DEBOUNCE polarity = 1[0m
+D (1848) FUSB302.cpp:fusb302_tcpm_set_vconn:700 C2 vconn 0 enable 1[0m
+D (2132) usb_pd_driver.cpp:pd_power_supply_reset:118 Reset C2 Vbus Power[0m
+D (2136) NCP81239.cpp:ncp81239_pmic_reset:444 C2 CC1 0 CC2 2[0m
+D (2708) usb_pd_protocol.cpp:pd_execute_hard_reset:891 C2 HARD RST RX last_state 16 task_state 16[0m
+D (2709) usb_pd_driver.cpp:pd_power_supply_reset:118 Reset C2 Vbus Power[0m
+D (2716) NCP81239.cpp:ncp81239_pmic_reset:444 C2 CC1 0 CC2 2[0m
+D (3333) usb_pd_protocol.cpp:pd_execute_hard_reset:891 C2 HARD RST RX last_state 16 task_state 16[0m
+D (3334) usb_pd_driver.cpp:pd_power_supply_reset:118 Reset C2 Vbus Power[0m
+D (3341) NCP81239.cpp:ncp81239_pmic_reset:444 C2 CC1 0 CC2 2[0m
+D (4125) usb_pd_driver.cpp:pd_set_power_supply_ready:278 Enable C2 Vbus Power[0m
+D (4130) usb_pd_protocol.cpp:pd_run_state_machine:2425 Time 4, C2 SRC HARD RESET RECOVER cc1 = 0 cc2 = 2 flag = 5896 polarity 1[0m
+D (4292) usb_pd_driver.cpp:pd_transition_voltage:348 C2 Current requested index: 4 15000 mV 3000 mA[0m
+D (4319) NCP81239.cpp:ncp81239_pmic_set_voltage:390 Warning! C2 VBus is up to 15V[0m

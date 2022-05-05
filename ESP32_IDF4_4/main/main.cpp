@@ -17,6 +17,7 @@
 
 #include <driver/uart.h>
 #include <driver/gpio.h>
+#include <driver/rtc_io.h>
 
 #include "src\DRV\PDM\usb_pd.h"
 
@@ -276,7 +277,9 @@ esp_sleep_wakeup_cause_t print_wakeup_reason(){
 // #define NOA_DEEP_SLEEP  1
 
 extern "C" void app_main(void) {
+  rtc_gpio_hold_dis((gpio_num_t)station_en5v_pin);
   print_wakeup_reason();
+  bpower_save = 0;
   esp_sleep_enable_timer_wakeup(60000000);
   Debug_init();
   Uart_Print_Info();
@@ -311,7 +314,7 @@ extern "C" void app_main(void) {
 
   gpio_config_t io_conf_outputpin_db;
   io_conf_outputpin_db.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
-  io_conf_outputpin_db.pin_bit_mask = (1ULL << station_db_pin) | (1ULL << station_powersave_pin) | (1ULL << station_powerled_pin) | (1ULL << panda_power_pin) | (1ULL << station_en5v_pin);
+  io_conf_outputpin_db.pin_bit_mask = (1ULL << station_db_pin) | (1ULL << station_powersave_pin) | (1ULL << station_powerled_pin) | (1ULL << panda_power_pin);
   io_conf_outputpin_db.mode = GPIO_MODE_OUTPUT;  // output
   io_conf_outputpin_db.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf_outputpin_db.pull_up_en = GPIO_PULLUP_DISABLE;
@@ -319,9 +322,17 @@ extern "C" void app_main(void) {
 
   gpio_set_level((gpio_num_t)station_db_pin, 1);  // Hold DB pin
   gpio_set_level((gpio_num_t)station_powersave_pin, 0);  // Hold powersave pin
-//  gpio_set_level((gpio_num_t)station_powersave_pin, 1);
   gpio_set_level((gpio_num_t)station_powerled_pin, 1);  // light power led pin
   gpio_set_level((gpio_num_t)panda_power_pin, 0);  // Hold panda power pin
+
+  gpio_config_t io_conf_outputpin_5v;
+  io_conf_outputpin_5v.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
+  io_conf_outputpin_5v.pin_bit_mask = (1ULL << station_en5v_pin);
+  io_conf_outputpin_5v.mode = GPIO_MODE_OUTPUT;  // output
+  io_conf_outputpin_5v.pull_down_en = GPIO_PULLDOWN_ENABLE;
+  io_conf_outputpin_5v.pull_up_en = GPIO_PULLUP_DISABLE;
+  gpio_config(&io_conf_outputpin_5v);
+
   gpio_set_level((gpio_num_t)station_en5v_pin, 0);  // Hold station 5V pin
 //  gpio_set_level((gpio_num_t)station_en5v_pin, 1);
 

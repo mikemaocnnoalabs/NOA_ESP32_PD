@@ -469,3 +469,37 @@ int ncp81239_pmic_reset(int port) {
 #endif
   return ucResult;
 }
+
+int ncp81239_pmic_clean(int port) {
+  uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+#else
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+#endif
+  g_stPMICData[port].b1CR00EnPol = g_stPmicInitialData.b1CR00EnPol;
+  g_stPMICData[port].b1CR00EnPup = g_stPmicInitialData.b1CR00EnPup;
+  g_stPMICData[port].b1CR00EnMask = g_stPmicInitialData.b1CR00EnMask;
+  g_stPMICData[port].b1CR00EnInternal = g_stPmicInitialData.b1CR00EnInternal;
+
+  g_stPMICData[port].ucCR01DacTarget = 0x0;
+
+  g_stPMICData[port].b2CR05OcpClimPos = g_stPmicInitialData.b2CR05OcpClimPos;
+  g_stPMICData[port].b2CR05OcpClimNeg = g_stPmicInitialData.b2CR05OcpClimNeg;
+  
+  g_stPMICData[port].b2CR06Cs1Clind = g_stPmicInitialData.b2CR06Cs1Clind;
+  g_stPMICData[port].b2CR06Cs2Clind = g_stPmicInitialData.b2CR06Cs2Clind;
+
+  if (port == 2) {
+    int cc1 = 0, cc2 = 0;
+    tcpm_get_cc(port, &cc1, &cc2);
+    APP_DEBUG("Port %d CC1 %d CC2 %d", port, cc1, cc2);
+  }
+  ncp81239_pmic_set_tatus(port);
+  return ucResult;
+}
+

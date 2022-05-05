@@ -203,12 +203,12 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         if (bpower_save == 0) {
           if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) { // Panda is not power up
             if (gpio_get_level((gpio_num_t)panda_s0_pin) == 0) {  // and power is not ready, LED is blnk slow(on 2s - off 1s)
-              if (nled_blink >=0 && nled_blink < 4) {
+              if (nled_blink >=0 && nled_blink < 2) {
                 gpio_set_level((gpio_num_t)station_powerled_pin, 1);
-              } else if (nled_blink >= 4 && nled_blink < 6) {
+              } else if (nled_blink >= 2 && nled_blink < 4) {
                 gpio_set_level((gpio_num_t)station_powerled_pin, 0);
               }
-              if (nled_blink == 5) {
+              if (nled_blink >= 3) {
                 nled_blink = 0;
               } else {
                 nled_blink++;
@@ -232,20 +232,26 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         break;
       case APP_MSG_TIMER_ID: {
 //          APP_DEBUG("App task APP_MSG_TIMER_ID: %d", nclick);
-          if (nclick == 2) {
-            memset(&msg, 0, sizeof(NOA_PUB_MSG));
-            msg.message = APP_MSG_POWERSAVE;
-            if (NOA_APP_TASKQUEUE != NULL) {
-              xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
-            }
+          if (nclick == 1) {
+            nclick = 0;
           }
-          nclick = 0;
         }
         break;
       case APP_MSG_KEYCLICK:
         switch(msg.param1) {
-          case 1:
-            nclick++;
+          case 1: {
+              nclick++;
+              if (nclick == 2) {
+                if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
+                  memset(&msg, 0, sizeof(NOA_PUB_MSG));
+                  msg.message = APP_MSG_POWERSAVE;
+                  if (NOA_APP_TASKQUEUE != NULL) {
+                    xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+                  }
+                }
+                nclick = 0;
+              }
+            }
             break;
           case 2:
             break;
@@ -270,7 +276,7 @@ void NOA_App_init() {
   const esp_timer_create_args_t wdg_timer_args = {
     .callback = &wdg_timer_callback,
     .arg = NULL,
-    .dispatch_method = ESP_TIMER_ISR,
+    .dispatch_method = ESP_TIMER_TASK,
     .name = "wdgtimer",
     .skip_unhandled_events = true
   };
@@ -296,7 +302,7 @@ void NOA_App_init() {
                  "GPIOInputTask",               // Text name for the task.
                  SIZE_OF_GPIO_STACK,            // Stack size in bytes, not words.
                  NULL,                          // Parameter passed into the task.
-                 tskIDLE_PRIORITY + 1,          // Priority at which the task is created.
+                 tskIDLE_PRIORITY + 5,          // Priority at which the task is created.
                  xStack_GPIOInput,              // Array to use as the task's stack.
                  &xTaskBuffer_GPIOInput);       // Variable to hold the task's data structure.
   if (GPIO_Input_Task == NULL) {

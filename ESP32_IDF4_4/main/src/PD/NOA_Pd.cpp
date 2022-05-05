@@ -63,69 +63,8 @@ StaticTask_t xTaskBuffer_pd;
 StackType_t xStack_pd[SIZE_OF_PD_STACK];
 
 void reset_all_io() {
-//  NOA_PUB_I2C_master_driver_deinitialize(0);
-//  NOA_PUB_I2C_master_driver_deinitialize(1);
-//  gpio_reset_pin((gpio_num_t)i2c0_scl_pin);  // open gpio_reset_pin will up current of sleep
-//  gpio_reset_pin((gpio_num_t)i2c0_sda_pin);
-//  gpio_reset_pin((gpio_num_t)i2c1_scl_pin);
-//  gpio_reset_pin((gpio_num_t)i2c1_sda_pin);
-//
-//  gpio_reset_pin((gpio_num_t)station_db_pin);
-//  gpio_reset_pin((gpio_num_t)station_button_pin);
-//  gpio_reset_pin((gpio_num_t)station_powersave_pin);
-//  gpio_reset_pin((gpio_num_t)station_powerled_pin);
-//  gpio_reset_pin((gpio_num_t)station_en5v_pin);
-//
-//  gpio_reset_pin((gpio_num_t)panda_power_pin);
-//  gpio_reset_pin((gpio_num_t)panda_s0_pin);
-//  gpio_reset_pin((gpio_num_t)panda_s4_pin);
-//  gpio_reset_pin((gpio_num_t)panda_s5_pin);
-//
-//  gpio_reset_pin((gpio_num_t)usb_pd_snk_int_pin);
-//  gpio_reset_pin((gpio_num_t)usb_pd_snk_sel_pin);
-//
-//  gpio_reset_pin((gpio_num_t)usb_pd_src2_int_pin);
-//  gpio_reset_pin((gpio_num_t)usb_pd_src2_sel_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con2_int_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con2_en_pin);
-//
-//  gpio_reset_pin((gpio_num_t)usb_pd_src1_int_pin);
-//  gpio_reset_pin((gpio_num_t)usb_pd_src1_sel_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con1_int_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con1_en_pin);
-//
-//  gpio_reset_pin((gpio_num_t)usb_pd_src3_int_pin);
-//  gpio_reset_pin((gpio_num_t)usb_pd_src3_sel_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con3_int_pin);
-//  gpio_reset_pin((gpio_num_t)ncp_bb_con3_en_pin);
-
-//  rtc_gpio_isolate((gpio_num_t)i2c0_scl_pin);
-//  rtc_gpio_isolate((gpio_num_t)i2c0_sda_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)station_en5v_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)panda_power_pin);
-//  rtc_gpio_isolate((gpio_num_t)panda_s0_pin);
-//  rtc_gpio_isolate((gpio_num_t)panda_s4_pin);
-//  rtc_gpio_isolate((gpio_num_t)panda_s5_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)usb_pd_src2_int_pin);
-//  rtc_gpio_isolate((gpio_num_t)usb_pd_src2_sel_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con2_int_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con2_en_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)usb_pd_src1_sel_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con1_int_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con1_en_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)usb_pd_src3_int_pin);
-//  rtc_gpio_isolate((gpio_num_t)usb_pd_src3_sel_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con3_int_pin);
-//  rtc_gpio_isolate((gpio_num_t)ncp_bb_con3_en_pin);
-//
-//  rtc_gpio_isolate((gpio_num_t)GPIO_NUM_12);
-//  rtc_gpio_isolate((gpio_num_t)GPIO_NUM_15);
-//  rtc_gpio_isolate((gpio_num_t)GPIO_NUM_16);
+//  rtc_gpio_isolate((gpio_num_t)station_en5v_pin);  // This code will make gpio pin unhandle control
+  rtc_gpio_hold_en((gpio_num_t)station_en5v_pin);  // keep EN_5V pin in deep sleep
 }
 
 void pd_task_loop(void *arg) {
@@ -205,16 +144,19 @@ void pd_powersave_task_loop(void *arg) {
     }  
     pd_run_state_machine(0, reset);
     if (pd_sink_port_ready == 1) {
+      ncp81239_pmic_clean(1);
+      ncp81239_pmic_clean(2);
+      ncp81239_pmic_clean(3);
       break;
     }
     vTaskDelay(10/portTICK_PERIOD_MS);
   }
   pd_sink_port_ready = 0;
-  vTaskDelay(50/portTICK_PERIOD_MS);
+  vTaskDelay(100/portTICK_PERIOD_MS);
   gpio_set_level((gpio_num_t)ncp_bb_con1_en_pin, 0);
   gpio_set_level((gpio_num_t)ncp_bb_con2_en_pin, 0);
   gpio_set_level((gpio_num_t)ncp_bb_con3_en_pin, 0);
-//  gpio_set_level((gpio_num_t)station_en5v_pin, 1);
+  gpio_set_level((gpio_num_t)station_en5v_pin, 1);
 //  gpio_set_level((gpio_num_t)station_powersave_pin, 1);
 //  gpio_set_level((gpio_num_t)station_db_pin, 0);
   APP_DEBUG("pd_powersave_task_loop Exit from core %d", xPortGetCoreID());

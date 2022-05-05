@@ -77,4 +77,6 @@ This code can be tested with the NOA ESP32 PD board
 
 5. Use 40M SPI speed, DIO SPI mode and 64Mbit FLASHSIZE for Snacker board
 
+6. Change SDK to ESP-IDF release/4.4 branch for Station2 ESP32-S2 board
+
  
