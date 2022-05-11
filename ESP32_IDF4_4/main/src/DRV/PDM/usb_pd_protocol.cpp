@@ -2921,8 +2921,8 @@ void pd_run_state_machine(int port, int reset)
 	case PD_STATE_SNK_DISCOVERY:
 		/* Wait for source cap expired only if we are enabled */
 		if ((pd[port].last_state != pd[port].task_state) && pd_comm_is_enabled(port)) {
-//          tcpm_get_cc(port, &cc1, &cc2);
-//          CPRINTF("C%d cc1 = %d cc2 = %d ", port, cc1, cc2);
+          tcpm_get_cc(port, &cc1, &cc2);
+          CPRINTF("C%d cc1 = %d cc2 = %d ", port, cc1, cc2);
 			/*
 				* If VBUS has never been low, and we timeout
 				* waiting for source cap, try a soft reset

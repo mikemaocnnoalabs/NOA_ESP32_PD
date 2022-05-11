@@ -40,7 +40,7 @@ extern "C" {
 #define NOA_PD_DEVICENAME "NOA-Station-ESP-32"
 #endif
 #ifdef NOA_PD_STATION2
-#define NOA_ESP32_PD_VERSION "1.1.1.4"  // 1.1.x.x support ESP32-S2
+#define NOA_ESP32_PD_VERSION __NOA_APP_VERSION__  // 1.1.x.x support ESP32-S2
 #define NOA_PD_DEVICENAME "NOA-Station-ESP-32-S2"
 #endif
 #endif
@@ -98,10 +98,9 @@ const int i2c1_scl_pin = GPIO_NUM_34;  // i2c 0 scl
 const int i2c1_sda_pin = GPIO_NUM_33;  // i2c 0 sda
 
 const int station_db_pin = GPIO_NUM_39;         // station DB port, must output HIGH
-const int station_button_pin = GPIO_NUM_40;     // power click button
-const int station_powersave_pin = GPIO_NUM_36;  // power save
+const int station_button_pin = GPIO_NUM_4;      // power click button
 const int station_powerled_pin = GPIO_NUM_35;   // power led
-const int station_en5v_pin = GPIO_NUM_21;       // station 5v enable pin
+const int station_en5v_pin = GPIO_NUM_21;       // station 5v enable/power save pin
 
 const int panda_power_pin = GPIO_NUM_10;    // Panda switch
 const int panda_s0_pin = GPIO_NUM_11;       // Panda S0
@@ -118,7 +117,7 @@ const int ncp_bb_con2_en_pin = GPIO_NUM_17;   // enable pin for src_2 ncp81239(P
 
 const int usb_pd_src1_int_pin = GPIO_NUM_37;  // init pin for PD src_1(P2) (port 2 C1)
 const int usb_pd_src1_sel_pin = GPIO_NUM_1;  // sel pin for PD src_1(P2) (port 2 C1)
-const int ncp_bb_con1_int_pin = GPIO_NUM_4;   // init pin for src_1 ncp81239(P2) (port 2 C1)
+const int ncp_bb_con1_int_pin = GPIO_NUM_36;  // init pin for src_1 ncp81239(P2) (port 2 C1)
 const int ncp_bb_con1_en_pin = GPIO_NUM_2;    // enable pin for src_1 ncp81239(P2)(port 2 C1) 
 
 const int usb_pd_src3_int_pin = GPIO_NUM_6;  // init pin for PD src_3(P3) (port 3 C3)

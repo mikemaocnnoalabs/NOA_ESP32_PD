@@ -141,9 +141,9 @@ esp_err_t NOA_PUB_I2C_master_driver_initialize(uint8_t nIndex, int i2c_gpio_sda,
   i2c_config_t conf = {};
   conf.mode = I2C_MODE_MASTER;
   conf.scl_io_num = (gpio_num_t)i2c_gpio_scl;
-  conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+  conf.scl_pullup_en = GPIO_PULLUP_DISABLE;
   conf.sda_io_num = (gpio_num_t)i2c_gpio_sda;
-  conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+  conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
   conf.master.clk_speed = i2c_frequency;
   esp_err_t ret = i2c_param_config((i2c_port_t)nIndex, &conf);
   if (ret != 0) {

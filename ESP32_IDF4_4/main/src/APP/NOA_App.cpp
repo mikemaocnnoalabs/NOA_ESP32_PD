@@ -44,6 +44,8 @@ static int nclick = 0;
 static int blong_click = 0;
 static int bshort_click = 0;
 
+static int nauto_powersave = 0;
+
 int bpower_save = 0;
 //****************************************************************************
 void station_powersave() {
@@ -55,7 +57,6 @@ void station_powersave() {
 void station_wakeup() {
   if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
     gpio_set_level((gpio_num_t)station_db_pin, 1);          // Hold DB pin
-    gpio_set_level((gpio_num_t)station_powersave_pin, 0);   // Hold powersave pin
     gpio_set_level((gpio_num_t)station_en5v_pin, 0);
     gpio_set_level((gpio_num_t)ncp_bb_con1_en_pin, 1);
     gpio_set_level((gpio_num_t)ncp_bb_con2_en_pin, 1);
@@ -235,11 +236,25 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
           if (nclick == 1) {
             nclick = 0;
           }
+          if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
+            nauto_powersave++;
+            if (nauto_powersave >= 300 && bpower_save == 0) {
+              nauto_powersave = 0;
+              memset(&msg, 0, sizeof(NOA_PUB_MSG));
+              msg.message = APP_MSG_POWERSAVE;
+              if (NOA_APP_TASKQUEUE != NULL) {
+                xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
+              }
+            }
+          } else {
+            nauto_powersave = 0;
+          }
         }
         break;
       case APP_MSG_KEYCLICK:
         switch(msg.param1) {
           case 1: {
+              nauto_powersave = 0;  // reset auto power save when button is clicked
               nclick++;
               if (nclick == 2) {
                 if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {

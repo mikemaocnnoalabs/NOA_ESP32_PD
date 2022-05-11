@@ -157,11 +157,18 @@ void pd_powersave_task_loop(void *arg) {
   gpio_set_level((gpio_num_t)ncp_bb_con2_en_pin, 0);
   gpio_set_level((gpio_num_t)ncp_bb_con3_en_pin, 0);
   gpio_set_level((gpio_num_t)station_en5v_pin, 1);
-//  gpio_set_level((gpio_num_t)station_powersave_pin, 1);
+
 //  gpio_set_level((gpio_num_t)station_db_pin, 0);
   APP_DEBUG("pd_powersave_task_loop Exit from core %d", xPortGetCoreID());
   uart_wait_tx_idle_polling(CONFIG_ESP_CONSOLE_UART_NUM);
   reset_all_io();
+
+  // Hibernation Mode setting
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,   ESP_PD_OPTION_OFF);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_XTAL,         ESP_PD_OPTION_OFF);
+
   esp_deep_sleep_start();
 //  esp_light_sleep_start();
   vTaskDelete(NULL);

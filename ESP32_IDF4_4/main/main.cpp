@@ -31,8 +31,8 @@
 xSemaphoreHandle wire0_mutex = NULL;
 xSemaphoreHandle wire1_mutex = NULL;
 
-char strReleaseDate[16] = {0};
-char strReleaseTime[16] = {0};
+//char strReleaseDate[16] = {0};
+//char strReleaseTime[16] = {0};
 
 // This banner is checked the memmory of MCU platform
 const char NOA_Banner[] = {0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88, 0x20, 0x20, 0xe2, 0x96, 0x88, 0xe2, 0x96, 0x88,\
@@ -92,11 +92,15 @@ void Uart_Print_Info() {
   printf(" NOA PD STATION2 Firmware %s\r\n", NOA_ESP32_PD_VERSION);
 #endif
 #endif
-  memset(strReleaseDate, 0, 16);
-  memset(strReleaseTime, 0, 16);
-  sprintf(strReleaseDate, "%04d%02d%02d", BUILD_DATE_YEAR_INT,BUILD_DATE_MONTH_INT,BUILD_DATE_DAY_INT);
-  sprintf(strReleaseTime, "%02d%02d%02d", BUILD_TIME_HOURS_INT,BUILD_TIME_MINUTES_INT,BUILD_TIME_SECONDS_INT);
-  printf(" Building Time %s%s\r\n", strReleaseDate, strReleaseTime);
+//  memset(strReleaseDate, 0, 16);
+//  memset(strReleaseTime, 0, 16);
+//  sprintf(strReleaseDate, "%04d%02d%02d", BUILD_DATE_YEAR_INT,BUILD_DATE_MONTH_INT,BUILD_DATE_DAY_INT);
+//  sprintf(strReleaseTime, "%02d%02d%02d", BUILD_TIME_HOURS_INT,BUILD_TIME_MINUTES_INT,BUILD_TIME_SECONDS_INT);
+//  printf(" Building Time %s%s\r\n", strReleaseDate, strReleaseTime);
+  printf(" Building Time %s\r\n", __NOA_APP_BUILD_TIME__);
+//  printf(__NOA_APP_BUILD_TIME__);
+//  printf(__NOA_APP_VERSION__);
+//  printf(__NOA_APP_NAME__);
   esp_chip_info_t info;
   esp_chip_info(&info);
 
@@ -280,7 +284,8 @@ extern "C" void app_main(void) {
   rtc_gpio_hold_dis((gpio_num_t)station_en5v_pin);
   print_wakeup_reason();
   bpower_save = 0;
-  esp_sleep_enable_timer_wakeup(60000000);
+//  esp_sleep_enable_timer_wakeup(60000000);  // auto wake up after 60 sec, for testing only
+  esp_sleep_enable_ext1_wakeup((1ULL << (gpio_num_t)station_button_pin), ESP_EXT1_WAKEUP_ALL_LOW);
   Debug_init();
   Uart_Print_Info();
 //  esp_wifi_stop();
@@ -314,16 +319,23 @@ extern "C" void app_main(void) {
 
   gpio_config_t io_conf_outputpin_db;
   io_conf_outputpin_db.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
-  io_conf_outputpin_db.pin_bit_mask = (1ULL << station_db_pin) | (1ULL << station_powersave_pin) | (1ULL << station_powerled_pin) | (1ULL << panda_power_pin);
+  io_conf_outputpin_db.pin_bit_mask = (1ULL << station_db_pin) | (1ULL << station_powerled_pin) | (1ULL << panda_power_pin);
   io_conf_outputpin_db.mode = GPIO_MODE_OUTPUT;  // output
   io_conf_outputpin_db.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf_outputpin_db.pull_up_en = GPIO_PULLUP_DISABLE;
   gpio_config(&io_conf_outputpin_db);
 
   gpio_set_level((gpio_num_t)station_db_pin, 1);  // Hold DB pin
-  gpio_set_level((gpio_num_t)station_powersave_pin, 0);  // Hold powersave pin
   gpio_set_level((gpio_num_t)station_powerled_pin, 1);  // light power led pin
   gpio_set_level((gpio_num_t)panda_power_pin, 0);  // Hold panda power pin
+
+  gpio_config_t io_conf_outputpin_40;
+  io_conf_outputpin_40.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
+  io_conf_outputpin_40.pin_bit_mask = (1ULL << GPIO_NUM_40);
+  io_conf_outputpin_40.mode = GPIO_MODE_INPUT;  // input
+  io_conf_outputpin_40.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_conf_outputpin_40.pull_up_en = GPIO_PULLUP_DISABLE;
+  gpio_config(&io_conf_outputpin_40);
 
   gpio_config_t io_conf_outputpin_5v;
   io_conf_outputpin_5v.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
@@ -334,7 +346,6 @@ extern "C" void app_main(void) {
   gpio_config(&io_conf_outputpin_5v);
 
   gpio_set_level((gpio_num_t)station_en5v_pin, 0);  // Hold station 5V pin
-//  gpio_set_level((gpio_num_t)station_en5v_pin, 1);
 
   vTaskDelay(50/portTICK_PERIOD_MS);
 
@@ -367,8 +378,8 @@ extern "C" void app_main(void) {
   io_conf_inputpin_panda.pull_up_en = GPIO_PULLUP_DISABLE;
   gpio_config(&io_conf_inputpin_panda);
 
-  if (NOA_PUB_I2C_master_driver_initialize(0, i2c0_sda_pin, i2c0_scl_pin, 600000) != ESP_OK) { // Iint I2C bus 0
-    APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 0, i2c0_sda_pin, i2c0_scl_pin, 600000);
+  if (NOA_PUB_I2C_master_driver_initialize(0, i2c0_sda_pin, i2c0_scl_pin, 400000) != ESP_OK) { // Iint I2C bus 0
+    APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 0, i2c0_sda_pin, i2c0_scl_pin, 400000);
     return;
   }
   NOA_PUB_I2C_Scanner(0);
@@ -383,8 +394,8 @@ extern "C" void app_main(void) {
   // unlock
   xSemaphoreGive(wire0_mutex);
 
-  if (NOA_PUB_I2C_master_driver_initialize(1, i2c1_sda_pin, i2c1_scl_pin, 600000) != ESP_OK) { // Iint I2C bus 1
-    APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 1, i2c1_sda_pin, i2c1_scl_pin, 600000);
+  if (NOA_PUB_I2C_master_driver_initialize(1, i2c1_sda_pin, i2c1_scl_pin, 400000) != ESP_OK) { // Iint I2C bus 1
+    APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 1, i2c1_sda_pin, i2c1_scl_pin, 400000);
     return;
   }
   NOA_PUB_I2C_Scanner(1);
