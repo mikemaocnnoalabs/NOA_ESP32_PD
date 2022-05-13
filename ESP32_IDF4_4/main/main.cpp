@@ -279,10 +279,10 @@ esp_sleep_wakeup_cause_t print_wakeup_reason(){
 
 // #define NOA_LIGHT_SLEEP 1
 // #define NOA_DEEP_SLEEP  1
-
+int nwake_reason = 0;
 extern "C" void app_main(void) {
   rtc_gpio_hold_dis((gpio_num_t)station_en5v_pin);
-  print_wakeup_reason();
+  nwake_reason = print_wakeup_reason();
   bpower_save = 0;
 //  esp_sleep_enable_timer_wakeup(60000000);  // auto wake up after 60 sec, for testing only
   esp_sleep_enable_ext1_wakeup((1ULL << (gpio_num_t)station_button_pin), ESP_EXT1_WAKEUP_ALL_LOW);
@@ -382,7 +382,7 @@ extern "C" void app_main(void) {
     APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 0, i2c0_sda_pin, i2c0_scl_pin, 400000);
     return;
   }
-  NOA_PUB_I2C_Scanner(0);
+//  NOA_PUB_I2C_Scanner(0);
 
   wire0_mutex = xSemaphoreCreateMutex();
   if (!wire0_mutex) {
@@ -398,7 +398,7 @@ extern "C" void app_main(void) {
     APP_DEBUG("Initialize I2C bus %d(sda:%d slc:%d) frequency %d fail", 1, i2c1_sda_pin, i2c1_scl_pin, 400000);
     return;
   }
-  NOA_PUB_I2C_Scanner(1);
+//  NOA_PUB_I2C_Scanner(1);
 
   wire1_mutex = xSemaphoreCreateMutex();
   if (!wire1_mutex) {

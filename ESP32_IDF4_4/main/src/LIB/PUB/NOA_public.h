@@ -128,6 +128,7 @@ const int ncp_bb_con3_en_pin = GPIO_NUM_8;   // enable pin for src_3 ncp81239(P3
 extern xQueueHandle NOA_APP_TASKQUEUE;
 
 extern int bpower_save;
+extern int nwake_reason;
 #endif
 
 extern xSemaphoreHandle wire0_mutex;

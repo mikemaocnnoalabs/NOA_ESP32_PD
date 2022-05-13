@@ -44,6 +44,7 @@ static int nclick = 0;
 static int blong_click = 0;
 static int bshort_click = 0;
 
+static int nboot_lattepanda = 0;
 static int nauto_powersave = 0;
 
 int bpower_save = 0;
@@ -190,12 +191,8 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         break;
       case APP_MSG_POWERSAVE:
 //        APP_DEBUG("App task APP_MSG_POWERSAVE");
-        bpower_save = !bpower_save;
-        if (bpower_save == 0) {
-          station_wakeup();
-        } else {
-          station_powersave();
-        }
+        bpower_save = 1;
+        station_powersave();
         break;
       case APP_MSG_WAKEUP:
         break;
@@ -203,27 +200,26 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
 //        APP_DEBUG("App task APP_MSG_WDG_ID");
         if (bpower_save == 0) {
           if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) { // Panda is not power up
-            if (gpio_get_level((gpio_num_t)panda_s0_pin) == 0) {  // and power is not ready, LED is blnk slow(on 2s - off 1s)
-              if (nled_blink >=0 && nled_blink < 2) {
-                gpio_set_level((gpio_num_t)station_powerled_pin, 1);
-              } else if (nled_blink >= 2 && nled_blink < 4) {
-                gpio_set_level((gpio_num_t)station_powerled_pin, 0);
-              }
-              if (nled_blink >= 3) {
-                nled_blink = 0;
-              } else {
-                nled_blink++;
-              }
-            } else {  // Panda is not power up, but power is ready, LED is blnk faster(0.5s)
+            if (nboot_lattepanda == 0) { // Panda is not booted
+//              APP_DEBUG("Wake Reason %d", nwake_reason);
               nled_blink = !nled_blink;
               if (nled_blink == 1) {
                 gpio_set_level((gpio_num_t)station_powerled_pin, 1);
               } else {
                 gpio_set_level((gpio_num_t)station_powerled_pin, 0);
               }
+            } else {  // Panda is booted, station go to sleep mode
+              if (gpio_get_level((gpio_num_t)station_button_pin) == 1) {  // Sleep after released button
+                APP_DEBUG("station_button_pin HIGH");
+                bpower_save = 1;
+                station_powersave();
+              } else {
+                APP_DEBUG("station_button_pin LOW");
+              }
             }
           } else { // Panda is power up, LED is long light
             gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+            nboot_lattepanda = 1;
           }
         } else {
           if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
@@ -232,13 +228,13 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         }
         break;
       case APP_MSG_TIMER_ID: {
-//          APP_DEBUG("App task APP_MSG_TIMER_ID: %d", nclick);
+//        APP_DEBUG("App task APP_MSG_TIMER_ID: %d", nclick);
           if (nclick == 1) {
             nclick = 0;
           }
           if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
             nauto_powersave++;
-            if (nauto_powersave >= 300 && bpower_save == 0) {
+            if (nauto_powersave >= 600 && bpower_save == 0) { // when panda is power off, auto sleep after 10 minutes
               nauto_powersave = 0;
               memset(&msg, 0, sizeof(NOA_PUB_MSG));
               msg.message = APP_MSG_POWERSAVE;
@@ -252,20 +248,10 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
         }
         break;
       case APP_MSG_KEYCLICK:
+        nauto_powersave = 0;
         switch(msg.param1) {
           case 1: {
-              nauto_powersave = 0;  // reset auto power save when button is clicked
               nclick++;
-              if (nclick == 2) {
-                if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
-                  memset(&msg, 0, sizeof(NOA_PUB_MSG));
-                  msg.message = APP_MSG_POWERSAVE;
-                  if (NOA_APP_TASKQUEUE != NULL) {
-                    xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
-                  }
-                }
-                nclick = 0;
-              }
             }
             break;
           case 2:
