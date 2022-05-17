@@ -6,7 +6,7 @@ set(release_name noa-eden-station2)
 set(VER_MAJOR 1)
 set(VER_MINOR 1)
 set(VER_PATCH 1)
-set(VER_TWEAK 6)
+set(VER_TWEAK 7)
 set(PROJECT_VER ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.${VER_TWEAK})
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
