@@ -183,6 +183,7 @@ int     ncp81239_pmic_init(int port);
 int     ncp81239_pmic_get_tatus(int port);
 int     ncp81239_pmic_set_tatus(int port);
 int     ncp81239_pmic_set_voltage(int port);
+int     ncp81239_pmic_get_voltage(int port);
 int     ncp81239_pmic_reset(int port);
 int     ncp81239_pmic_clean(int port);
 

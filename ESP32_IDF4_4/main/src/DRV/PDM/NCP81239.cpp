@@ -402,6 +402,43 @@ int ncp81239_pmic_set_voltage(int port) {
   return ucResult;
 }
 
+int ncp81239_pmic_get_voltage(int port) {
+  uint8_t ucResult = 0;
+#ifdef NOA_PD_SNACKER
+  if(port < 1 || port > 2) {  // support 1 - 2 port only(1 - PD Src, 2 - Wireless charger)
+    return -1;
+  }
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_master_i2c_read(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+    case 2:
+      NOA_PUB_I2C_master_i2c_read(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+  }
+#else
+  if(port < 1 || port > 3) {  // support 1 - 3 port only
+    return -1;
+  }
+
+  switch (port) {
+    case 1:
+      NOA_PUB_I2C_master_i2c_read(0, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+    case 2:
+      NOA_PUB_I2C_master_i2c_read(1, ncp81239_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+    case 3:
+      NOA_PUB_I2C_master_i2c_read(0, ncp81239A_I2C_SLAVE_ADDR, _NCP81239_CTRL_REG01, (uint8_t *)(&g_stPMICData[port]) + _NCP81239_CTRL_REG01, 1);
+      break;
+  }
+#endif
+  ucResult = g_stPMICData[port].ucCR01DacTarget;
+
+  return ucResult;
+}
+
+
 int ncp81239_pmic_reset(int port) {
   uint8_t ucResult = 0;
 #ifdef NOA_PD_SNACKER

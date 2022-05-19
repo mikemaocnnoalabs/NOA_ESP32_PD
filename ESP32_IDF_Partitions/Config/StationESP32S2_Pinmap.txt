@@ -1,0 +1,55 @@
+#DB		MTCK	GPIO39
+#BUTTON	MTDO	GPIO4
+#POWER_LED		GPIO35
+
+POWER DOWN:  Power DOWN Panda, Power Save, PD SINK ask 5V, light-sleep
+
+#PWER_PANDA	GPIO10
+#S0			GPIO11
+#S4			GPIO13
+#S3			GPIO14
+
+#EN_5V/POWER_SAVE		GPIO21 need cut it before power save
+#I2C0 SCI	GPIO5
+#I2C0 SDA	GPIO3
+
+#I2C1 SCI	GPIO34
+#I2C1 SDA	GPIO33
+
+#UP(P0) port(Source)
+.EN_NCP_UP		DAC_1	GPIO17
+.INT_NCP_UP		DAC_2	GPIO18
+.SEL_UP			GPIO19
+.INT_302_UP		GPIO20
+
+#P1 Port(SINK)
+.SEL_P1			MTDI	GPIO41
+.INT_302_P1		GPIO38
+
+#P2 port(Source)
+.EN_NCP_P2		GPIO2
+.INT_NCP_P2		GPIO37
+.SEL_P2			GPIO1
+.INT_302_P2		GPIO4
+changed 
+.INT_302_P2		GPIO36
+
+#P3 port(Source)
+.EN_NCP_P3		GPIO8
+.INT_NCP_P3		GPIO7
+.SEL_P3			GPIO9
+.INT_302_P3		GPIO6
+
+#P1 302 I2C_ADDR  0x23;
+
+#P0 302 I2C_ADDR 0x22;
+#P0 NCP I2C_ADDR 0x74;
+
+#P2 302 I2C_ADDR 0x22;
+#P2 NCP I2C_ADDR 0x74;
+
+#P3 302 I2C_ADDR 0x23;
+#P3 NCP I2C_ADDR 0x75;
+
+* Panda Pin level is negated, 0 for high, 1 for low
+* Panda switch pin: keep 3s for shutdown, keep 1.5s for "press power button"

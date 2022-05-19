@@ -12,6 +12,7 @@
 #include <driver/gpio.h>
 
 #include "..\DRV\PDM\usb_pd.h"
+#include "..\DRV\PDM\NCP81239.h"
 #include "..\LIB\PUB\NOA_debug.h"
 #include "..\LIB\PUB\NOA_public.h"
 
@@ -51,6 +52,8 @@ static int nauto_powersave = 0;
 
 int bpower_save = 0;
 static int bpower_direct_save = 0;
+
+static int nwake_time = 0;
 //****************************************************************************
 void station_powersave() {
   if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
@@ -103,6 +106,10 @@ void gpio_task_loop(void *arg) {
     if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
       switch(io_num) {
         case station_button_pin:
+          if (nwake_time != 15) {
+            APP_DEBUG("Ignore GPIO[%d] intr val:%d in first %d sec when wake up from sleep", io_num, gpio_get_level((gpio_num_t)io_num), nwake_time);
+            break;
+          }
           if (gpio_get_level((gpio_num_t)io_num) == 0) {
             if (bpress_key == 0) {
               bpress_key = 1;
@@ -111,7 +118,7 @@ void gpio_task_loop(void *arg) {
               APP_DEBUG("GPIO[%d] intr, val:%d Button down", io_num, gpio_get_level((gpio_num_t)io_num));
             }
           } else if(bpress_key == 1) {
-            APP_DEBUG("S5 %d S4 %d S0 %d autosave %d", gpio_get_level((gpio_num_t)panda_s5_pin), gpio_get_level((gpio_num_t)panda_s4_pin), gpio_get_level((gpio_num_t)panda_s0_pin), nauto_powersave);
+            APP_DEBUG("S3 %d S4 %d S0 %d autosave %d wakereason %d", gpio_get_level((gpio_num_t)panda_s3_pin), gpio_get_level((gpio_num_t)panda_s4_pin), gpio_get_level((gpio_num_t)panda_s0_pin), nauto_powersave, nwake_reason);
             if (blift_key == 0) {
               blift_key = 1;
               button_time = millis() - button_time;
@@ -165,6 +172,7 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
   BaseType_t xStatus = 0;
   NOA_PUB_MSG msg;
   static int nled_blink = 0;  // blink power LED
+  static int nled_breath = 0;  // breath power LED
 
   while(true){
     memset(&msg, 0, sizeof(NOA_PUB_MSG));
@@ -201,45 +209,45 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
       case APP_MSG_WAKEUP:
         break;
       case APP_MSG_WDG_ID:
-//        APP_DEBUG("App task APP_MSG_WDG_ID");
-//        if (bpower_save == 0) {
-//          if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) { // Panda is not power up
-//            if (nboot_lattepanda == 0) { // Panda is not booted
-//              nled_blink = !nled_blink;
-//              if (nled_blink == 1) {
-//                gpio_set_level((gpio_num_t)station_powerled_pin, 1);
-//              } else {
-//                gpio_set_level((gpio_num_t)station_powerled_pin, 0);
-//              }
-//            } else {  // Panda is booted, station go to sleep mode
-//              if (gpio_get_level((gpio_num_t)station_button_pin) == 1) {  // Sleep after released button
-//                APP_DEBUG("station_button_pin HIGH");
-//                bpower_save = 1;
-//                station_powersave();
-//              } else {
-//                APP_DEBUG("station_button_pin LOW");
-//              }
-//            }
-//          } else { // Panda is power up, LED is long light
-//            gpio_set_level((gpio_num_t)station_powerled_pin, 1);
-//            nboot_lattepanda = 1;
-//          }
-//        } else {
-//          if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
-//            gpio_set_level((gpio_num_t)station_powerled_pin, 0);
-//          }
-//        }
+        if (nwake_reason == 3) { // auto power up lattepanda when wake up from sleep
+          if (nwake_time < 15) {
+            nwake_time++;
+          }
+        } else {
+          nwake_time = 15;
+        }
         if (bpower_save == 0 && bpower_direct_save == 0) {
-//          APP_DEBUG("nboot_lattepanda %d", nboot_lattepanda);
-          if ((gpio_get_level((gpio_num_t)panda_s4_pin) == 0) && (nboot_lattepanda >= 6 || nboot_lattepanda == 0)) { // Panda is not power up
-            nled_blink = !nled_blink;
-            if (nled_blink == 1) {
-              gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+//          APP_DEBUG("S3 %d S4 %d nboot_lattepanda %d nwake_time %d", gpio_get_level((gpio_num_t)panda_s3_pin), gpio_get_level((gpio_num_t)panda_s4_pin), nboot_lattepanda, nwake_time);
+          if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {  // Panda is not power up
+            if ((nboot_lattepanda >= 6 || nboot_lattepanda == 0) && (nwake_time == 15)) { // skip first 6 secs after panda is boot up, for some board s4 will down in booting step, and Skip 7.5 sec after station2 is wake up, wait it auto boots up panda
+              nled_blink = !nled_blink;
+              if (nled_blink == 1) {
+                gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+              } else {
+                gpio_set_level((gpio_num_t)station_powerled_pin, 0);
+              }
             } else {
-              gpio_set_level((gpio_num_t)station_powerled_pin, 0);
+              gpio_set_level((gpio_num_t)station_powerled_pin, 1);
             }
           } else { // Panda is power up, LED is long light
-            gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+            if (gpio_get_level((gpio_num_t)panda_s3_pin) == 1) { // no OS sleep signal
+              gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+            } else {  // OS sleep
+              switch(nled_breath) {
+                case 0:
+                case 1:
+                case 2:
+                  gpio_set_level((gpio_num_t)station_powerled_pin, 1);
+                  break;
+                case 3:
+                  gpio_set_level((gpio_num_t)station_powerled_pin, 0);
+                  break;
+              }
+              nled_breath++;
+              if (nled_breath == 4) {
+                nled_breath = 0;
+              }
+            }
             if (nboot_lattepanda == 0) {
               nboot_lattepanda = 1;
             }
@@ -249,6 +257,33 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
             gpio_set_level((gpio_num_t)station_powerled_pin, 0);
           }
         }
+        switch(nwake_time) {
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:  // wait 3.5 secs for P2 board PD connection
+            break;
+          case 7:  // send 1.5 sec sw signal
+            gpio_set_level((gpio_num_t)panda_power_pin, 1);
+            break;
+          case 8:
+          case 9:
+            break;
+          case 10:
+            gpio_set_level((gpio_num_t)panda_power_pin, 0);
+            break;
+          case 11:
+          case 12:
+          case 13:
+          case 14:
+            break;
+          default:
+            nwake_time = 15;
+            break;
+        }
         break;
       case APP_MSG_TIMER_ID: {
 //        APP_DEBUG("App task APP_MSG_TIMER_ID: %d", nclick);
@@ -256,7 +291,7 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
             nclick = 0;
           }
           if (gpio_get_level((gpio_num_t)panda_s4_pin) == 0) {
-            if (nboot_lattepanda != 0) {
+            if (nboot_lattepanda != 0) {  // if get s4 low signal after panda is booting up
               nboot_lattepanda++;
             }
             if (nboot_lattepanda > 6) {
@@ -298,6 +333,13 @@ void MAIN_APP_Task_Loop(void * pvParameters) {
                 xQueueSend(NOA_APP_TASKQUEUE, (void *)&msg, (TickType_t)0);
               }
             }
+          }
+          int nvoltage_p1 = ncp81239_pmic_get_voltage(1);
+//          int nvoltage_p2 = ncp81239_pmic_get_voltage(2);
+          int nvoltage_p3 = ncp81239_pmic_get_voltage(3);
+//          APP_DEBUG("P1 voltage %d P2 voltage %d P3 voltage %d wakefrom %d waketime %d", nvoltage_p1, nvoltage_p2, nvoltage_p3, nwake_reason, nwake_time);
+          if (nvoltage_p1 != 50 || nvoltage_p3 != 50) {
+            nauto_powersave = 0;
           }
         }
         break;

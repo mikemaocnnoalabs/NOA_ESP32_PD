@@ -105,7 +105,7 @@ const int station_en5v_pin = GPIO_NUM_21;       // station 5v enable/power save 
 const int panda_power_pin = GPIO_NUM_10;    // Panda switch
 const int panda_s0_pin = GPIO_NUM_11;       // Panda S0
 const int panda_s4_pin = GPIO_NUM_13;       // Panda S4
-const int panda_s5_pin = GPIO_NUM_14;       // Panda S5
+const int panda_s3_pin = GPIO_NUM_14;       // Panda S3
 
 const int usb_pd_snk_int_pin = GPIO_NUM_38;  // init pin for PD snk(P1) (port 1 C0)
 const int usb_pd_snk_sel_pin = GPIO_NUM_41;  // sel pin for PD snk(P1) (port 1 C0)
@@ -128,6 +128,7 @@ const int ncp_bb_con3_en_pin = GPIO_NUM_8;   // enable pin for src_3 ncp81239(P3
 extern xQueueHandle NOA_APP_TASKQUEUE;
 
 extern int bpower_save;
+extern int nwake_reason;
 #endif
 
 extern xSemaphoreHandle wire0_mutex;

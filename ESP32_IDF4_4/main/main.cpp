@@ -372,7 +372,7 @@ extern "C" void app_main(void) {
 
   gpio_config_t io_conf_inputpin_panda;  // Init all panda status pin, pull down
   io_conf_inputpin_panda.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
-  io_conf_inputpin_panda.pin_bit_mask = (1ULL << panda_s0_pin) | (1ULL << panda_s4_pin) | (1ULL << panda_s5_pin);
+  io_conf_inputpin_panda.pin_bit_mask = (1ULL << panda_s0_pin) | (1ULL << panda_s4_pin) | (1ULL << panda_s3_pin);
   io_conf_inputpin_panda.mode = GPIO_MODE_INPUT;  // input
   io_conf_inputpin_panda.pull_down_en = GPIO_PULLDOWN_ENABLE;
   io_conf_inputpin_panda.pull_up_en = GPIO_PULLUP_DISABLE;
