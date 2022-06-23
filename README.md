@@ -78,5 +78,40 @@ This code can be tested with the NOA ESP32 PD board
 5. Use 40M SPI speed, DIO SPI mode and 64Mbit FLASHSIZE for Snacker board
 
 6. Change SDK to ESP-IDF release/4.4 branch for Station2 ESP32-S2 board
+ a. Checkout ESP32-IDF SDK release/v4.4 branch
+  * mkdir d:\esp-idf-tools
+  * cd d:\esp-idf-tools
+  * notepad run_install.bat
 
+  echo off
+  if "%IDF_TOOLS_PATH%" == "" (
+    set IDF_TOOLS_PATH=%~dp0
+    echo IDF_TOOLS_PATH not set. Setting to %~dp0
+  )
+  set PATH=%IDF_TOOLS_PATH%;%PATH%
+
+  * call run_install.bat
+  * cd d:\
+  * git clone https://github.com/espressif/esp-idf.git
+  * cd d:\esp-idf
+  * git fetch
+  * git pull
+  * git checkout release/v4.4 -b release/v4.4
+  * call install.bat
+  * call export.bat
+
+ b. APP Building commands
+  * cd d:\
+  * git clone https://github.com/NOA-Labs/NOA_ESP32_PD.git
+  * cd d:\NOA_ESP32_PD
+  * git fetch
+  * git pull
+  * git checkout origin/STAION_NEW_DEV -b STAION_NEW_DEV
+  * idf.py set-target esp32s2
+  * idf.py menuconfig
+  * idf.py clean
+  * idf.py fullclean
+  * idf.py build
+  * idf.py -p COM81 flash monitor
+  * idf.py -p COM81 monitor
  
